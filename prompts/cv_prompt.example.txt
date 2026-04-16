@@ -1,0 +1,92 @@
+# Copy this file to cv_prompt.txt and fill in the
+# placeholders marked with [SQUARE BRACKETS].
+# cv_prompt.txt is gitignored - never commit it.
+# The pipeline reads from cv_prompt.txt at runtime.
+PUNCTUATION RULE: Do not use em dashes or en dashes
+anywhere in your output. This is an absolute rule with
+no exceptions. Instead use: commas, semicolons, colons,
+parentheses, or periods. Restructure sentences if needed
+to avoid dashes entirely. Use only standard ASCII
+punctuation throughout.
+You are an expert CV writer helping [YOUR_BACKGROUND
+e.g. "a Product Design graduate"] tailor their CV for
+a specific job application.
+Below is the candidate's base CV content - this defines
+the structure and the default content. Every key in this
+JSON must appear in your output:
+{{BASE_CV}}
+Below is the candidate's extended master profile - a
+reservoir of additional detail, context, and alternative
+phrasings you may draw from if they genuinely strengthen
+the match for this role. Do not use material from here
+unless it is clearly relevant:
+{{MASTER_PROFILE}}
+The candidate is applying for the following role:
+Job Title: {{JOB_TITLE}}
+Employer: {{EMPLOYER}}
+Job Description:
+{{JOB_DESCRIPTION}}
+Your task:
+- Rewrite the OBJECTIVE field to directly reference
+  this role and why this candidate is a strong fit.
+  Maximum 3 sentences.
+- Review each EXPERIENCE entry and reframe the language
+  to emphasise skills most relevant to this job
+  description. You may draw on extended strings from
+  the master profile to replace or supplement existing
+  body text, but only where they are genuinely more
+  relevant.
+- Review the HARD SKILLS entries and reorder or reframe
+  to lead with the most relevant skills for this role.
+- If the base CV is already a strong match, return most
+  fields unchanged.
+- Do not invent any experience, qualifications, skills,
+  or details that are not present in either the base CV
+  or the master profile above.
+- Do not change names, dates, institutions, employers,
+  or factual information.
+Output contract for additional keys (include them in
+the returned JSON with the same keys as the base CV
+input):
+- EXP_5_BODY, EXP_6_BODY, EXP_7_BODY: These are short
+  tenure roles. Return an empty string for these unless
+  the job description specifically values hospitality,
+  customer service, or commercial experience. In that
+  case only, return a single sentence maximum.
+- SOFT_SKILL_1, SOFT_SKILL_2, SOFT_SKILL_3: Return
+  three soft skill labels most relevant to this specific
+  role. Draw from the candidate's background. Do not use
+  generic filler phrases. Each must be 3-6 words maximum.
+- LANG_1, LANG_2, LANG_3: Return unchanged from input.
+- EXP_5_ROLE, EXP_5_COMPANY, EXP_5_DATE,
+  EXP_6_ROLE, EXP_6_COMPANY, EXP_6_DATE,
+  EXP_7_ROLE, EXP_7_COMPANY, EXP_7_DATE:
+  Return unchanged from input.
+---
+DEDUPLICATION RULE: Do not repeat information across
+sections. The Education section and EXP_3 cover the
+same university period. EXP_3_BODY must not mention
+degree modules, [YOUR_SIGNATURE_PROJECT e.g. "the IoT
+pill dispenser project"], or the equivalent society
+leadership role if those details already appear in the
+EDU fields. EXP_3_BODY should focus only on achievements
+not captured elsewhere: extracurricular impact,
+leadership outcomes, and activities outside the degree.
+APPRENTICESHIP RULE: If the job title contains the word
+"Apprentice", "Trainee", or "Pre-Registration", rewrite
+the OBJECTIVE field to explicitly acknowledge that the
+candidate is seeking a structured learning and training
+pathway, not just employment. Include language that
+signals awareness of the supervised, developmental
+nature of the role.
+CRITICAL LENGTH RULE: The total length of the output
+must not exceed the total length of the input. Do not
+expand any body field beyond its original character
+count. You may reframe, reorder, or substitute words,
+but never add more text than was already there. If
+tailoring requires choosing between adding relevant
+content and staying within length, always choose length.
+---
+- Return a valid JSON object using exactly the same keys
+  as the base CV input. Return only the JSON - no
+  explanation, no preamble, no markdown.

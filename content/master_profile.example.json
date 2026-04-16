@@ -1,0 +1,91 @@
+{
+  "_readme": "Copy this file to master_profile.json and fill in your own values. This file is safe to commit. master_profile.json is gitignored.",
+  "cv": {
+    "personal_profile": [
+      "YOUR_PROFILE_SUMMARY_STRING_1",
+      "YOUR_PROFILE_SUMMARY_STRING_2"
+    ],
+    "personal_motivations": [
+      "YOUR_MOTIVATION_STRING_1",
+      "YOUR_MOTIVATION_STRING_2"
+    ],
+    "education": {
+      "primary_institution": [
+        "YOUR_DEGREE_AND_INSTITUTION",
+        "YOUR_MODULES"
+      ],
+      "secondary_institution": [
+        "YOUR_PRIOR_EDUCATION"
+      ]
+    },
+    "certifications": [
+      "YOUR_CERTIFICATION_1",
+      "YOUR_CERTIFICATION_2"
+    ],
+    "technical_skills": {
+      "category_1": ["YOUR_SKILL_1", "YOUR_SKILL_2"],
+      "category_2": ["YOUR_SKILL_3"]
+    },
+    "soft_skills": [
+      "YOUR_SOFT_SKILL_STRING_1",
+      "YOUR_SOFT_SKILL_STRING_2"
+    ],
+    "languages": [
+      "YOUR_LANGUAGE_AND_PROFICIENCY_1",
+      "YOUR_LANGUAGE_AND_PROFICIENCY_2"
+    ],
+    "projects": {
+      "project_1": [
+        "YOUR_PROJECT_OVERVIEW",
+        "YOUR_PROJECT_DETAIL_1",
+        "YOUR_PROJECT_DETAIL_2"
+      ]
+    },
+    "experience": {
+      "employer_1": [
+        "YOUR_EXPERIENCE_STRING_1",
+        "YOUR_EXPERIENCE_STRING_2"
+      ],
+      "employer_2": [
+        "YOUR_EXPERIENCE_STRING_1"
+      ]
+    },
+    "character_and_values": [
+      "YOUR_VALUE_OR_CHARACTER_STRING_1"
+    ],
+    "healthcare_relevance": [
+      "YOUR_HEALTHCARE_CONTEXT_IF_RELEVANT"
+    ],
+    "additional_context": [
+      "YOUR_ADDITIONAL_CONTEXT_STRING"
+    ]
+  },
+  "cover_letter": {
+    "personal_story": [
+      "YOUR_PERSONAL_STORY_STRING_1"
+    ],
+    "motivations_and_values": [
+      "YOUR_MOTIVATION_STRING_1"
+    ],
+    "caregiving_and_hardship": [
+      "YOUR_CONTEXT_IF_RELEVANT"
+    ],
+    "design_philosophy": [
+      "YOUR_PHILOSOPHY_STRING_1"
+    ],
+    "transferable_angles": [
+      "YOUR_TRANSFERABLE_SKILL_STRING_1"
+    ],
+    "company_specific_angles": {
+      "fast_moving_teams": "YOUR_ANGLE_FOR_FAST_PACED_ROLES",
+      "technical_organisations": "YOUR_ANGLE_FOR_TECHNICAL_ROLES",
+      "mission_led": "YOUR_ANGLE_FOR_MISSION_LED_ORGS",
+      "operational_public_service": "YOUR_ANGLE_FOR_PUBLIC_SECTOR",
+      "healthcare_or_support": "YOUR_ANGLE_FOR_HEALTHCARE_ROLES",
+      "design_or_ux": "YOUR_ANGLE_FOR_DESIGN_ROLES"
+    },
+    "additional_reservoir": [
+      "YOUR_ADDITIONAL_COVER_LETTER_STRING_1"
+    ]
+  }
+}

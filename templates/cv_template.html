@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{NAME}} — CV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+
+    /* ── Page & print setup ─────────────────────────────── */
+    @page {
+      size: A4;
+      margin: 8mm;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 7.5pt;
+      color: #1a1a1a;
+      background: #ffffff;
+      line-height: 1.3;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ── Colour tokens ──────────────────────────────────── */
+    :root {
+      --text-primary:   #1a1a1a;
+      --text-secondary: #8a8a8a;   /* muted grey — dates, company, role subtitles */
+      --text-label:     #4a4a4a;   /* slightly darker grey — section headers */
+      --rule:           #e0e0e0;   /* hairline dividers */
+    }
+
+    /* ── Page wrapper ───────────────────────────────────── */
+    .page {
+      width: 100%;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 0;          /* browser preview only — @page handles print */
+    }
+
+    /* ── Section spacing ────────────────────────────────── */
+    .section {
+      margin-top: 8pt;
+    }
+
+    /* ── Divider line under section headers ─────────────── */
+    .section-rule {
+      border: none;
+      border-top: 0.5pt solid var(--rule);
+      margin-bottom: 4pt;
+    }
+
+    /* ── NAME & TITLE BLOCK ─────────────────────────────── */
+    .cv-name {
+      font-size: 18pt;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+
+    .cv-title {
+      font-size: 10pt;
+      font-weight: 300;
+      color: var(--text-secondary);
+      margin-top: 2pt;
+    }
+
+    /* ── SECTION HEADERS ────────────────────────────────── */
+    .section-head {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-label);
+      margin-bottom: 3pt;
+    }
+
+    /* ── BODY TEXT ──────────────────────────────────────── */
+    .body-text {
+      font-size: 7.5pt;
+      font-weight: 400;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    /* ── EDUCATION BLOCK ────────────────────────────────── */
+    .edu-institution {
+      font-size: 9pt;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .edu-meta {
+      font-size: 7.5pt;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-bottom: 2pt;
+    }
+
+    .edu-detail {
+      font-size: 7.5pt;
+      color: var(--text-primary);
+      margin-top: 3pt;
+    }
+
+    /* ── EXPERIENCE ENTRY ───────────────────────────────── */
+    .exp-entry {
+      margin-bottom: 5pt;
+    }
+
+    .exp-entry:last-child {
+      margin-bottom: 0;
+    }
+
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8pt;
+    }
+
+    .exp-role {
+      font-size: 9pt;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .exp-date {
+      font-size: 8.5pt;
+      font-weight: 400;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .exp-company {
+      font-size: 9pt;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-bottom: 3pt;
+    }
+
+    /* ── SKILLS BLOCK ───────────────────────────────────── */
+    .skill-entry {
+      margin-bottom: 4pt;
+    }
+
+    .skill-entry:last-child {
+      margin-bottom: 0;
+    }
+
+    .skill-label {
+      font-size: 9pt;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* ── SOFT SKILLS LIST ───────────────────────────────── */
+    .soft-skills {
+      display: flex;
+      flex-direction: column;
+      gap: 2pt;
+    }
+
+    .soft-skill-item {
+      font-size: 9pt;
+      color: var(--text-primary);
+    }
+
+    .soft-skill-item::before {
+      content: "—";
+      color: var(--text-secondary);
+      margin-right: 5pt;
+    }
+
+    /* ── LANGUAGES ──────────────────────────────────────── */
+    .lang-row {
+      display: flex;
+      gap: 18pt;
+      flex-wrap: wrap;
+    }
+
+    .lang-item {
+      font-size: 9pt;
+      color: var(--text-primary);
+    }
+
+    .lang-level {
+      color: var(--text-secondary);
+    }
+
+    /* ── CONTACT BLOCK ──────────────────────────────────── */
+    .contact-row {
+      display: flex;
+      gap: 18pt;
+      flex-wrap: wrap;
+      margin-top: 8pt;
+      padding-top: 6pt;
+      border-top: 0.5pt solid var(--rule);
+    }
+
+    .contact-item {
+      font-size: 9pt;
+      color: var(--text-secondary);
+    }
+
+    /* ── Bullet list ────────────────────────────────────── */
+    ul.cv-bullets {
+      padding-left: 12pt;
+      margin-top: 3pt;
+    }
+
+    ul.cv-bullets li {
+      font-size: 9pt;
+      color: var(--text-primary);
+      margin-bottom: 2pt;
+      line-height: 1.55;
+    }
+
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── NAME & TITLE ───────────────────────────────────── -->
+  <div class="cv-name">{{NAME}}</div>
+  <div class="cv-title">{{CURRENT_POSITION}}</div>
+
+  <!-- ── OBJECTIVE ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">Objective</div>
+    <hr class="section-rule">
+    <p class="body-text">{{OBJECTIVE}}</p>
+  </div>
+
+  <!-- ── EDUCATION ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">Education</div>
+    <hr class="section-rule">
+
+    <div class="exp-header">
+      <span class="edu-institution">{{EDU_INSTITUTION}}</span>
+      <span class="exp-date">{{EDU_DATES}}</span>
+    </div>
+    <div class="edu-meta">{{EDU_DEGREE}}</div>
+    <div class="edu-detail body-text">Modules: {{EDU_MODULES}}</div>
+    <div class="edu-detail body-text">Final Project: {{EDU_PROJECT}}</div>
+    <div class="edu-detail body-text">{{EDU_EXTRA}}</div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">Certifications</div>
+    <hr class="section-rule">
+    <p class="body-text">{{CERTIFICATIONS}}</p>
+  </div>
+
+  <!-- ── EXPERIENCE ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">Experience</div>
+    <hr class="section-rule">
+
+    <!-- Entry 1 -->
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="exp-role">{{EXP_1_ROLE}}</span>
+        <span class="exp-date">{{EXP_1_DATE}}</span>
+      </div>
+      <div class="exp-company">{{EXP_1_COMPANY}}</div>
+      <p class="body-text">{{EXP_1_BODY}}</p>
+    </div>
+
+    <!-- Entry 2 -->
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="exp-role">{{EXP_2_ROLE}}</span>
+        <span class="exp-date">{{EXP_2_DATE}}</span>
+      </div>
+      <div class="exp-company">{{EXP_2_COMPANY}}</div>
+      <p class="body-text">{{EXP_2_BODY}}</p>
+    </div>
+
+    <!-- Entry 3 -->
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="exp-role">{{EXP_3_ROLE}}</span>
+        <span class="exp-date">{{EXP_3_DATE}}</span>
+      </div>
+      <div class="exp-company">{{EXP_3_COMPANY}}</div>
+      <p class="body-text">{{EXP_3_BODY}}</p>
+    </div>
+
+    <!-- Entry 4 -->
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="exp-role">{{EXP_4_ROLE}}</span>
+        <span class="exp-date">{{EXP_4_DATE}}</span>
+      </div>
+      <div class="exp-company">{{EXP_4_COMPANY}}</div>
+      <p class="body-text">{{EXP_4_BODY}}</p>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="exp-role">{{EXP_5_ROLE}}</span>
+        <span class="exp-date">{{EXP_5_DATE}}</span>
+      </div>
+      <div class="exp-company">{{EXP_5_COMPANY}}</div>
+      <p class="body-text">{{EXP_5_BODY}}</p>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="exp-role">{{EXP_6_ROLE}}</span>
+        <span class="exp-date">{{EXP_6_DATE}}</span>
+      </div>
+      <div class="exp-company">{{EXP_6_COMPANY}}</div>
+      <p class="body-text">{{EXP_6_BODY}}</p>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="exp-role">{{EXP_7_ROLE}}</span>
+        <span class="exp-date">{{EXP_7_DATE}}</span>
+      </div>
+      <div class="exp-company">{{EXP_7_COMPANY}}</div>
+      <p class="body-text">{{EXP_7_BODY}}</p>
+    </div>
+
+  </div>
+
+  <!-- ── HARD SKILLS ────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">Hard Skills</div>
+    <hr class="section-rule">
+
+    <div class="skill-entry">
+      <span class="skill-label">Software Literacy — </span>
+      <span class="body-text">{{SKILL_SOFTWARE}}</span>
+    </div>
+
+    <div class="skill-entry">
+      <span class="skill-label">Technical Skills — </span>
+      <span class="body-text">{{SKILL_TECHNICAL}}</span>
+    </div>
+
+    <div class="skill-entry">
+      <span class="skill-label">Attention to Detail — </span>
+      <span class="body-text">{{SKILL_DETAIL}}</span>
+    </div>
+
+    <div class="skill-entry">
+      <span class="skill-label">AI Adoption — </span>
+      <span class="body-text">{{SKILL_AI}}</span>
+    </div>
+  </div>
+
+  <!-- ── SOFT SKILLS ────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">Soft Skills</div>
+    <hr class="section-rule">
+    <div class="soft-skills">
+      <div class="soft-skill-item">{{SOFT_SKILL_1}}</div>
+      <div class="soft-skill-item">{{SOFT_SKILL_2}}</div>
+      <div class="soft-skill-item">{{SOFT_SKILL_3}}</div>
+    </div>
+  </div>
+
+  <!-- ── LANGUAGES ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">Languages</div>
+    <hr class="section-rule">
+    <div class="lang-row">
+      <span class="lang-item">{{LANG_1}}</span>
+      <span class="lang-item">{{LANG_2}}</span>
+      <span class="lang-item">{{LANG_3}}</span>
+    </div>
+  </div>
+
+  <!-- ── CONTACT ────────────────────────────────────────── -->
+  <div class="contact-row">
+    <span class="contact-item">{{EMAIL}}</span>
+    <span class="contact-item">{{PHONE}}</span>
+    <span class="contact-item">linkedin.com/in/{{LINKEDIN}}</span>
+  </div>
+
+</div>
+</body>
+</html>

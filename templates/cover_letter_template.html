@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cover letter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 8mm;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 9pt;
+      color: #1a1a1a;
+      line-height: 1.6;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 8mm;
+    }
+
+    .cl-name {
+      font-size: 18pt;
+      font-weight: 600;
+      color: #1a1a1a;
+      line-height: 1.1;
+    }
+
+    .cl-job-title {
+      font-size: 10pt;
+      font-weight: 300;
+      color: #8a8a8a;
+      margin-top: 3pt;
+      margin-bottom: 20pt;
+    }
+
+    .cl-salutation {
+      font-size: 9pt;
+      font-weight: 400;
+      margin-bottom: 12pt;
+    }
+
+    .cl-body {
+      font-size: 9pt;
+      font-weight: 400;
+      line-height: 1.6;
+      margin-bottom: 10pt;
+    }
+
+    .cl-sign-off {
+      font-size: 9pt;
+      margin-top: 16pt;
+    }
+
+    .cl-signature {
+      font-size: 9pt;
+      font-weight: 500;
+      margin-top: 4pt;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cl-name">{{NAME}}</div>
+  <div class="cl-job-title">{{JOB_TITLE}}</div>
+
+  <div class="cl-salutation">Dear {{EMPLOYER}} Team,</div>
+
+  <p class="cl-body">{{COVER_LETTER_OPENING}}</p>
+  <p class="cl-body">{{COVER_LETTER_EXPERIENCE}}</p>
+  <p class="cl-body">{{COVER_LETTER_MOTIVATION}}</p>
+  <p class="cl-body">{{COVER_LETTER_CLOSING}}</p>
+
+  <div class="cl-sign-off">Yours sincerely,</div>
+  <div class="cl-signature">{{NAME}}</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Core dependencies
+anthropic
+weasyprint
+gspread
+google-auth
+google-auth-oauthlib
+python-dotenv
+requests
+beautifulsoup4
+
+# Optional - uncomment when activating Apify scrapers
+# (see scrapers/nhs.py and scrapers/totaljobs.py)
+# apify-client

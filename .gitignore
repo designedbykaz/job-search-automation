@@ -1,0 +1,17 @@
+.env
+outputs/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+google_credentials.json
+content/master_profile.json
+content/base_cv_content.json
+*API KEY*
+.secrets.baseline
+prompts/cv_prompt.txt
+prompts/cover_letter_prompt.txt
+.claude/
