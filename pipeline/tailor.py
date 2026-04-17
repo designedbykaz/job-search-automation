@@ -58,7 +58,7 @@ def tailor_cv(job, output_folder):
 
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         message = client.messages.create(
-            model="claude-opus-4-6",
+            model=os.getenv("CLAUDE_MODEL", "claude-opus-4-6"),
             max_tokens=4096,
             messages=[{"role": "user", "content": filled_prompt}],
         )
@@ -111,7 +111,7 @@ def tailor_cover_letter(job, output_folder):
 
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         message = client.messages.create(
-            model="claude-opus-4-6",
+            model=os.getenv("CLAUDE_MODEL", "claude-opus-4-6"),
             max_tokens=2048,
             messages=[{"role": "user", "content": filled_prompt}],
         )

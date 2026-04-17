@@ -53,8 +53,8 @@
     "character_and_values": [
       "YOUR_VALUE_OR_CHARACTER_STRING_1"
     ],
-    "healthcare_relevance": [
-      "YOUR_HEALTHCARE_CONTEXT_IF_RELEVANT"
+    "sector_relevance": [
+      "YOUR_SECTOR_CONTEXT_IF_RELEVANT"
     ],
     "additional_context": [
       "YOUR_ADDITIONAL_CONTEXT_STRING"
@@ -67,10 +67,10 @@
     "motivations_and_values": [
       "YOUR_MOTIVATION_STRING_1"
     ],
-    "caregiving_and_hardship": [
+    "personal_context": [
       "YOUR_CONTEXT_IF_RELEVANT"
     ],
-    "design_philosophy": [
+    "professional_philosophy": [
       "YOUR_PHILOSOPHY_STRING_1"
     ],
     "transferable_angles": [

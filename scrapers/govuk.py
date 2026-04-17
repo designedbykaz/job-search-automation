@@ -2,7 +2,6 @@
 
 import re
 import time
-from urllib.parse import urljoin
 from urllib.robotparser import RobotFileParser
 
 import requests
@@ -25,10 +24,7 @@ def can_fetch(url):
         rp = RobotFileParser()
         rp.set_url(robots_url)
         rp.read()
-        allowed = rp.can_fetch("*", url)
-        if not allowed:
-            print(f"Warning: robots.txt disallows {url}. Proceeding anyway at low volume.")
-        return True
+        return rp.can_fetch("*", url)
     except Exception as e:
         print(f"Warning: could not fetch robots.txt ({e}). Defaulting to allowed.")
         return True
@@ -36,6 +32,9 @@ def can_fetch(url):
 
 def get_job_description(job_url, session):
     empty = {"description": "", "closing_date": "", "contact_info": ""}
+    if not can_fetch(job_url):
+        print(f"Skipping (disallowed by robots.txt): {job_url}")
+        return None
     try:
         time.sleep(REQUEST_DELAY)
         response = session.get(job_url, timeout=10)
@@ -73,50 +72,6 @@ def get_job_description(job_url, session):
         return {"description": description, "closing_date": closing_date, "contact_info": contact_info}
     except Exception:
         return empty
-
-
-def _text_or_empty(el):
-    if el is None:
-        return ""
-    return el.get_text(separator=" ", strip=True)
-
-
-def _extract_listing_fields(listing_el, base_for_relative):
-    """
-    Extract title, employer, location, date, url from one result row element.
-    TODO: Confirm markup — selectors are placeholders for GOV.UK Jobs HTML.
-    """
-    title = ""
-    employer = ""
-    location = ""
-    date_str = ""
-    url = ""
-
-    # TODO: Replace with verified link/title selector (e.g. h2 a, a.job-title).
-    link = listing_el.select_one("a[href]")
-    if link and link.get("href"):
-        href = link["href"].strip()
-        if href.startswith("http"):
-            url = href
-        else:
-            url = urljoin(base_for_relative, href)
-        title = _text_or_empty(link)
-
-    # TODO: Confirm class names / structure for employer, location, posted date.
-    emp_el = listing_el.select_one(".employer, [class*='employer']")  # placeholder
-    employer = _text_or_empty(emp_el)
-
-    loc_el = listing_el.select_one(".location, [class*='location']")  # placeholder
-    location = _text_or_empty(loc_el)
-
-    date_el = listing_el.select_one(
-        "time, .date, [class*='date'], [class*='posted']"
-    )  # placeholder
-    date_str = _text_or_empty(date_el)
-    if not date_str and date_el and date_el.get("datetime"):
-        date_str = date_el.get("datetime", "").strip()
-
-    return title, employer, location, date_str, url
 
 
 def scrape_govuk_jobs():
@@ -180,6 +135,8 @@ def scrape_govuk_jobs():
                 short_desc = desc_tag.get_text(strip=True) if desc_tag else ""
 
                 detail = get_job_description(url, session)
+                if detail is None:
+                    continue
                 description = detail["description"] if detail["description"] else short_desc
                 closing_date = detail["closing_date"]
                 contact_info = detail["contact_info"]
