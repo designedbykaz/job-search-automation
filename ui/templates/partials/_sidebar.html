@@ -1,0 +1,23 @@
+{% set nav_items = [
+  {"id": "dashboard", "label": "Dashboard", "href": url_for('dashboard.index'), "icon": "bi-grid-1x2"},
+  {"id": "run",       "label": "Run",       "href": url_for('pipeline.index'),  "icon": "bi-play-fill"},
+  {"id": "jobs",      "label": "Jobs",      "href": url_for('jobs.index'),      "icon": "bi-briefcase"},
+  {"id": "content",   "label": "Content",   "href": url_for('content.index'),   "icon": "bi-file-earmark-text"},
+  {"id": "prompts",   "label": "Prompts",   "href": url_for('prompts.index'),   "icon": "bi-code-slash"},
+  {"id": "templates", "label": "Templates", "href": url_for('cv_templates.index'), "icon": "bi-layers"},
+  {"id": "settings",  "label": "Settings",  "href": url_for('settings.index'),  "icon": "bi-gear"},
+] %}
+<aside class="app-sidebar">
+  <div class="app-sidebar-brand">
+    <span class="fw-semibold">Pipeline</span>
+  </div>
+  <nav class="app-nav">
+    {% for item in nav_items %}
+      <a href="{{ item.href }}"
+         class="app-nav-link {% if active_nav == item.id %}active{% endif %}">
+        <i class="bi {{ item.icon }}"></i>
+        <span>{{ item.label }}</span>
+      </a>
+    {% endfor %}
+  </nav>
+</aside>

@@ -1,0 +1,19 @@
+<header class="app-topbar">
+  <div class="d-flex align-items-center gap-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="status-dot status-dot--idle"></span>
+      <span class="text-muted small">Idle</span>
+    </div>
+    <div class="app-topbar-divider"></div>
+    <a href="{{ url_for('jobs.index', status='to_review') }}" class="app-topbar-stat">
+      <span class="fw-semibold text-body">12</span>
+      <span class="text-muted">to review</span>
+    </a>
+    <div class="app-topbar-divider"></div>
+    <a href="{{ url_for('jobs.index', status='approved') }}" class="app-topbar-stat">
+      <span class="fw-semibold text-body">5</span>
+      <span class="text-muted">approved</span>
+    </a>
+  </div>
+  <div class="text-muted small">Last run: 2 hours ago</div>
+</header>

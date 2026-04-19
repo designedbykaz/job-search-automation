@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Run pipeline{% endblock %}
+
+{% block content %}
+<div class="p-4 p-lg-5" style="max-width: 880px;">
+  <h1 class="page-title">Run pipeline</h1>
+
+  <form>
+    <div class="panel p-4 mb-4">
+      <h2 class="section-title">Scrapers</h2>
+      <div class="d-flex flex-column gap-2">
+        {% for s in scrapers %}
+          <label class="form-check d-flex align-items-center justify-content-between p-3 border rounded m-0">
+            <span class="d-flex align-items-center gap-2">
+              <input class="form-check-input m-0" type="checkbox"
+                     name="scraper_{{ s.id }}" {% if s.enabled %}checked{% endif %}>
+              <span>{{ s.name }}</span>
+            </span>
+            {% if s.status == 'healthy' %}
+              <span class="badge rounded-pill text-bg-success-subtle text-success fw-normal">healthy</span>
+            {% else %}
+              <span class="badge rounded-pill text-bg-light text-secondary fw-normal">{{ s.status }}</span>
+            {% endif %}
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel p-4 mb-4">
+      <h2 class="section-title">Keyword clusters</h2>
+      <div class="row g-2">
+        {% for c in clusters %}
+          <div class="col-md-6">
+            <label class="form-check d-flex align-items-center gap-2 p-3 border rounded m-0">
+              <input class="form-check-input m-0" type="checkbox"
+                     name="cluster_{{ c.id }}" {% if c.enabled %}checked{% endif %}>
+              <span class="flex-grow-1">
+                <span class="d-block">{{ c.name }}</span>
+                <span class="d-block text-muted small">{{ c.keywords }} keywords</span>
+              </span>
+            </label>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel p-4 mb-4">
+      <h2 class="section-title">Filters</h2>
+      <div class="mb-3">
+        <label class="form-label small">Location</label>
+        <input type="text" class="form-control" placeholder="e.g., London, Manchester, Remote">
+      </div>
+      <div class="mb-3">
+        <label class="form-label small">Date range</label>
+        <select class="form-select">
+          {% for d in date_ranges %}<option>{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label small">Mode</label>
+        <select class="form-select">
+          {% for m in modes %}<option>{{ m }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-dark w-100 py-2 d-inline-flex align-items-center justify-content-center gap-2" disabled>
+      <i class="bi bi-play-fill"></i>
+      Run pipeline
+    </button>
+    <p class="text-muted small text-center mt-2 mb-0">
+      Wiring to the pipeline orchestrator comes in a later phase.
+    </p>
+  </form>
+</div>
+{% endblock %}

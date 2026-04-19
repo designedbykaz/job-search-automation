@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Pipeline{% endblock %}
+
+{% block content %}
+<div class="p-4 p-lg-5" style="max-width: 1100px;">
+  <h1 class="page-title">Dashboard</h1>
+
+  <div class="panel p-4 mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="status-dot status-dot--idle"></span>
+          <span class="fw-medium">{{ status.label }}</span>
+        </div>
+        <p class="text-muted small mb-0">{{ status.detail }}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('pipeline.index') }}" class="btn btn-dark d-inline-flex align-items-center gap-2">
+          <i class="bi bi-play-fill"></i>
+          Run pipeline
+        </a>
+        <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled>
+          <i class="bi bi-file-earmark-check"></i>
+          Render approved
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    {% for counter in counters %}
+      <div class="col-md-4">
+        <div class="panel p-4">
+          <div class="fs-2 fw-semibold">{{ counter.value }}</div>
+          <div class="text-muted small">{{ counter.label }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">Recent activity</div>
+    <ul class="list-unstyled mb-0">
+      {% for item in activity %}
+        <li class="d-flex align-items-center justify-content-between px-4 py-3 {% if not loop.last %}border-bottom{% endif %}">
+          <div>
+            <div class="small">{{ item.action }}</div>
+            <div class="small text-muted">{{ item.detail }}</div>
+          </div>
+          <div class="small text-muted">{{ item.time }}</div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

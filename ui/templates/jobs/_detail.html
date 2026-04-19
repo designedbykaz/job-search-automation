@@ -1,0 +1,86 @@
+<div id="job-detail" class="jobs-detail">
+  <div class="p-4 border-bottom d-flex align-items-start justify-content-between">
+    <div class="flex-grow-1">
+      <h2 class="h5 mb-1">{{ job.title }}</h2>
+      <p class="text-muted small mb-2">{{ job.employer }} · {{ job.location }}</p>
+      <a href="{{ job.listing_url }}" target="_blank" rel="noopener"
+         class="small text-decoration-none d-inline-flex align-items-center gap-1">
+        View listing
+        <i class="bi bi-box-arrow-up-right"></i>
+      </a>
+    </div>
+    <button type="button"
+            class="btn btn-sm btn-link text-muted p-1"
+            hx-get="{{ url_for('jobs.index') }}"
+            hx-select="#job-detail"
+            hx-target="#job-detail"
+            hx-swap="outerHTML"
+            onclick="document.querySelectorAll('#jobs-tbody tr.is-selected').forEach(el => el.classList.remove('is-selected'));">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="flex-grow-1 overflow-auto p-4">
+    <section class="mb-4">
+      <h3 class="section-title">Job description</h3>
+      <div class="border rounded p-3 small text-muted" style="max-height: 12rem; overflow-y: auto;">
+        {% for para in job.description %}
+          <p class="mb-2">{{ para }}</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mb-4">
+      <h3 class="section-title">Tailored CV</h3>
+      <div class="border rounded">
+        <ul class="nav nav-tabs border-bottom-0" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cv-json-{{ job.id }}" type="button">JSON</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#cv-preview-{{ job.id }}" type="button">Preview</button>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane fade show active p-3 bg-light" id="cv-json-{{ job.id }}">
+            <pre class="mb-0 small" style="max-height: 14rem; overflow:auto;"><code>{{ cv_json }}</code></pre>
+          </div>
+          <div class="tab-pane fade p-3 small text-muted" id="cv-preview-{{ job.id }}">
+            Preview rendering comes in a later phase.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h3 class="section-title">Template</h3>
+      <div class="d-flex gap-2">
+        {% for t in templates %}
+          <button type="button"
+                  class="btn flex-grow-1 {% if t == selected_template %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+            Template {{ t }}
+          </button>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="p-4 border-top d-flex gap-2">
+    {% if job.status == 'to_review' %}
+      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
+        <i class="bi bi-check-lg"></i> Approve
+      </button>
+      <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled>
+        <i class="bi bi-archive"></i> Archive
+      </button>
+    {% elif job.status == 'approved' %}
+      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
+        <i class="bi bi-file-earmark-arrow-down"></i> Render PDF
+      </button>
+    {% elif job.status == 'rendered' %}
+      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
+        <i class="bi bi-file-earmark-arrow-down"></i> Download PDF
+      </button>
+    {% endif %}
+  </div>
+</div>

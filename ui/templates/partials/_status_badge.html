@@ -1,0 +1,7 @@
+{% set map = {
+  "to_review": ("To review", "status-badge status-badge--review"),
+  "approved":  ("Approved",  "status-badge status-badge--approved"),
+  "rendered":  ("Rendered",  "status-badge status-badge--rendered"),
+} %}
+{% set label, cls = map.get(status, (status, "status-badge")) %}
+<span class="{{ cls }}">{{ label }}</span>

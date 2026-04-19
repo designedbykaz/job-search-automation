@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+
+{% block content %}
+<div class="jobs-layout">
+  <div class="jobs-list">
+    <div class="p-4 border-bottom bg-white">
+      <h1 class="page-title mb-3">Jobs</h1>
+      <form method="get" action="{{ url_for('jobs.index') }}" class="d-flex gap-2">
+        <select name="status" class="form-select" style="max-width: 200px;"
+                onchange="this.form.submit()">
+          {% for value, label in statuses %}
+            <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="q" value="{{ search }}"
+               class="form-control" placeholder="Search title or employer...">
+        <button class="btn btn-outline-secondary" type="submit">Search</button>
+      </form>
+    </div>
+
+    <div class="flex-grow-1" style="overflow-y: auto;">
+      <table class="table jobs-table mb-0 align-middle">
+        <thead>
+          <tr>
+            <th class="px-4">Status</th>
+            <th>Title</th>
+            <th>Employer</th>
+            <th>Location</th>
+            <th>Cluster</th>
+            <th>Closing</th>
+          </tr>
+        </thead>
+        <tbody id="jobs-tbody">
+          {% for job in jobs %}
+            <tr hx-get="{{ url_for('jobs.detail', job_id=job.id) }}"
+                hx-target="#job-detail"
+                hx-swap="outerHTML"
+                hx-on:click="document.querySelectorAll('#jobs-tbody tr.is-selected').forEach(el => el.classList.remove('is-selected')); this.classList.add('is-selected');">
+              <td class="px-4">{% with status=job.status %}{% include "partials/_status_badge.html" %}{% endwith %}</td>
+              <td class="text-body">{{ job.title }}</td>
+              <td class="text-muted">{{ job.employer }}</td>
+              <td class="text-muted">{{ job.location }}</td>
+              <td><span class="cluster-tag">{{ job.cluster }}</span></td>
+              <td class="text-muted">{{ job.closing_date }}</td>
+            </tr>
+          {% endfor %}
+          {% if not jobs %}
+            <tr><td colspan="6" class="text-center text-muted py-5">No jobs match these filters.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="job-detail" class="jobs-detail-empty"></div>
+</div>
+{% endblock %}
