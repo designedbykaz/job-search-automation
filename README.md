@@ -6,6 +6,12 @@ It was built to solve a very annoying problem: scanning UK job boards every day 
 
 ---
 
+## Running the v2 UI
+
+A separate Flask front-end lives under `ui/` and runs from its own virtual environment at `ui/.venv/`, isolated from the pipeline's dependencies. On Windows (PowerShell), activate it with `ui\.venv\Scripts\Activate.ps1`; on macOS or Linux, use `source ui/.venv/bin/activate`. On a fresh clone, run `pip install -r ui/requirements.txt` inside the activated venv. Start the app with `python -m ui.run` and open `http://127.0.0.1:5000`.
+
+---
+
 ## Table of contents
 
 1. [Project overview and purpose](#1-project-overview-and-purpose)
