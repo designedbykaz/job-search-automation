@@ -272,3 +272,31 @@ html, body {
   padding: 3rem;
   color: var(--app-text-muted);
 }
+
+/* ---------- Tailored CV editor ---------- */
+
+.cv-actions .btn {
+  padding: 0.125rem 0.375rem;
+  line-height: 1;
+}
+
+.cv-actions .btn.is-confirming {
+  background-color: var(--bs-danger);
+  border-color: var(--bs-danger);
+  color: #fff;
+}
+
+.cv-json-editor {
+  font-size: 0.8125rem;
+  resize: vertical;
+  min-height: 14rem;
+}
+
+.cv-feedback {
+  min-height: 1.25rem;
+  transition: opacity 0.6s ease;
+}
+
+.cv-feedback.is-fading {
+  opacity: 0;
+}

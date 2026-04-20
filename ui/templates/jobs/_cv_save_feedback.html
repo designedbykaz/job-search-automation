@@ -1,0 +1,23 @@
+{% if success %}
+<span class="cv-feedback-message text-success">
+  <i class="bi bi-check-circle me-1"></i>Saved
+</span>
+<span id="cv-edited-badge-{{ job.id }}" hx-swap-oob="outerHTML">
+  <span id="cv-edited-badge-{{ job.id }}" class="badge text-bg-secondary ms-2">edited</span>
+</span>
+<span id="cv-reset-wrapper-{{ job.id }}" hx-swap-oob="outerHTML">
+  <span id="cv-reset-wrapper-{{ job.id }}">
+    <button type="button"
+            class="btn btn-sm btn-outline-secondary js-reset-cv"
+            title="Reset to original"
+            aria-label="Reset to original"
+            data-reset-url="{{ url_for('jobs.cv_edit_reset', job_id=job.id) }}">
+      <i class="bi bi-arrow-counterclockwise"></i>
+    </button>
+  </span>
+</span>
+{% else %}
+<span class="cv-feedback-message text-danger">
+  <i class="bi bi-exclamation-circle me-1"></i>Invalid JSON: {{ error }}
+</span>
+{% endif %}

@@ -31,7 +31,38 @@
     </section>
 
     <section class="mb-4">
-      <h3 class="section-title">Tailored CV</h3>
+      <div class="d-flex align-items-center mb-2">
+        <h3 class="section-title mb-0 me-2">Tailored CV</h3>
+        <span id="cv-edited-badge-{{ job.id }}">
+          {% if is_edited %}
+            <span id="cv-edited-badge-{{ job.id }}" class="badge text-bg-secondary ms-2">edited</span>
+          {% endif %}
+        </span>
+        <div class="cv-actions ms-auto d-flex gap-1">
+          <button type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  title="Save (Ctrl+S)"
+                  aria-label="Save edits"
+                  data-cv-save-for="cv-json-textarea-{{ job.id }}"
+                  hx-post="{{ url_for('jobs.cv_edit', job_id=job.id) }}"
+                  hx-include="#cv-json-textarea-{{ job.id }}"
+                  hx-target="#cv-feedback-{{ job.id }}"
+                  hx-swap="innerHTML">
+            <i class="bi bi-floppy"></i>
+          </button>
+          <span id="cv-reset-wrapper-{{ job.id }}">
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary js-reset-cv"
+                    title="Reset to original"
+                    aria-label="Reset to original"
+                    data-reset-url="{{ url_for('jobs.cv_edit_reset', job_id=job.id) }}"
+                    {% if not is_edited %}disabled{% endif %}>
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+          </span>
+        </div>
+      </div>
+
       <div class="border rounded">
         <ul class="nav nav-tabs border-bottom-0" role="tablist">
           <li class="nav-item" role="presentation">
@@ -43,7 +74,13 @@
         </ul>
         <div class="tab-content">
           <div class="tab-pane fade show active p-3 bg-light" id="cv-json-{{ job.id }}">
-            <pre class="mb-0 small" style="max-height: 14rem; overflow:auto;"><code>{{ cv_json }}</code></pre>
+            <textarea id="cv-json-textarea-{{ job.id }}"
+                      name="json_text"
+                      class="form-control font-monospace small cv-json-editor"
+                      rows="14"
+                      spellcheck="false"
+                      data-cv-textarea>{{ cv_json_text }}</textarea>
+            <div id="cv-feedback-{{ job.id }}" class="cv-feedback small mt-2" aria-live="polite"></div>
           </div>
           <div class="tab-pane fade p-3 small text-muted" id="cv-preview-{{ job.id }}">
             Preview rendering comes in a later phase.
