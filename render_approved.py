@@ -103,10 +103,15 @@ def render_approved():
                     continue
 
                 out_path = Path(output_folder_raw)
-                tailored_path = out_path / "cv_tailored.json"
-                if not tailored_path.is_file():
+                edited_path = out_path / "cv_tailored_edited.json"
+                original_path = out_path / "cv_tailored.json"
+                if edited_path.is_file():
+                    tailored_path = edited_path
+                elif original_path.is_file():
+                    tailored_path = original_path
+                else:
                     print(
-                        f"Warning: no cv_tailored.json at {tailored_path}; skipping."
+                        f"Warning: no cv_tailored.json at {original_path}; skipping."
                     )
                     continue
 
