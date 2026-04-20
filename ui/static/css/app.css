@@ -300,3 +300,36 @@ html, body {
 .cv-feedback.is-fading {
   opacity: 0;
 }
+
+/* ---------- Tailored CV preview ---------- */
+
+/* The iframe renders the CV at its natural size and fills the container
+ * horizontally so text stays legible. The container has a fixed height and
+ * scrolls vertically when the CV is taller than one viewport's worth. The
+ * overflow badge is driven independently by a script injected into the
+ * iframe that measures scrollHeight against the A4 threshold. */
+.cv-preview-wrap {
+  width: 100%;
+  height: 600px;
+  background: var(--app-muted-bg);
+  border: 1px solid var(--app-border);
+  border-radius: 0.25rem;
+  overflow: auto;
+}
+
+.cv-preview-iframe {
+  width: 100%;
+  min-height: 1123px;
+  border: 0;
+  background: #fff;
+  display: block;
+}
+
+.cv-overflow-badge {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.4rem;
+}
+
+.js-template-choice[aria-pressed="true"] {
+  box-shadow: 0 0 0 0.15rem rgba(0, 0, 0, 0.05);
+}

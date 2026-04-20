@@ -1,0 +1,8 @@
+<div class="cv-preview-wrap">
+  <iframe id="cv-preview-iframe-{{ job.id }}"
+          class="cv-preview-iframe"
+          title="CV preview"
+          sandbox="allow-scripts"
+          data-preview-url="{{ url_for('jobs.preview_content', job_id=job.id) }}"
+          srcdoc="{{ preview_html }}"></iframe>
+</div>
