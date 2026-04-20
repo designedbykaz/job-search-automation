@@ -25,8 +25,9 @@ def get_sheet():
     return spreadsheet.sheet1
 
 
-def fill_template(tailored_cv_dict):
-    template_path = Path("templates") / "cv_template.html"
+def fill_template(tailored_cv_dict, template_path=None):
+    if template_path is None:
+        template_path = Path("templates") / "cv_template_a.html"
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
 
@@ -118,7 +119,20 @@ def render_approved():
                 with open(tailored_path, "r", encoding="utf-8") as f:
                     tailored = json.load(f)
 
-                html_str = fill_template(tailored)
+                choice_path = out_path / "cv_template_choice.json"
+                choice = "a"
+                if choice_path.is_file():
+                    try:
+                        choice = json.loads(
+                            choice_path.read_text(encoding="utf-8")
+                        ).get("template", "a")
+                    except Exception:
+                        choice = "a"
+                if choice not in ("a", "b", "c"):
+                    choice = "a"
+                template_path = Path("templates") / f"cv_template_{choice}.html"
+
+                html_str = fill_template(tailored, template_path=template_path)
                 render_pdf(html_str, out_path)
 
                 job_url = row.get("Job URL", "")
