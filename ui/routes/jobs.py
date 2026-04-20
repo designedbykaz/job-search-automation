@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 
-from flask import Blueprint, abort, render_template, request
+from flask import Blueprint, Response, abort, jsonify, render_template, request
 
-from ui.services import tailored_cv
+from ui.services import cv_template_choice, preview, tailored_cv
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
 
@@ -182,9 +182,22 @@ def _seed_sample_output(job: dict) -> None:
     )
 
 
+def _seed_template_choice(job: dict) -> None:
+    folder = Path(job["output_folder"])
+    choice_file = folder / cv_template_choice.CHOICE_NAME
+    if choice_file.is_file():
+        return
+    folder.mkdir(parents=True, exist_ok=True)
+    choice_file.write_text(
+        json.dumps({"template": "a"}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _ensure_sample_outputs() -> None:
     for job in JOBS:
         _seed_sample_output(job)
+        _seed_template_choice(job)
 
 
 _ensure_sample_outputs()
@@ -206,14 +219,22 @@ def _filter_jobs(status):
 def _render_detail(job: dict):
     data, is_edited = tailored_cv.read_preferred(job["output_folder"])
     cv_json_text = json.dumps(data, indent=2, ensure_ascii=False)
-    templates = ["A", "B", "C"]
+    templates = ["a", "b", "c"]
+    selected_template = cv_template_choice.get_choice(job["output_folder"])
+    preview_html = preview.render_preview_html(
+        job["output_folder"],
+        data=data,
+        job_id=job["id"],
+        template_choice=selected_template,
+    )
     return render_template(
         "jobs/_detail.html",
         job=job,
         templates=templates,
-        selected_template="A",
+        selected_template=selected_template,
         cv_json_text=cv_json_text,
         is_edited=is_edited,
+        preview_html=preview_html,
     )
 
 
@@ -272,3 +293,44 @@ def cv_edit_reset(job_id):
     job = _get_job(job_id)
     tailored_cv.reset_edit(job["output_folder"])
     return _render_detail(job)
+
+
+@bp.route("/<int:job_id>/preview/content", methods=["GET", "POST"])
+def preview_content(job_id):
+    """Return a complete HTML document for the preview iframe.
+
+    GET: renders the preferred on-disk JSON. Used for the initial srcdoc.
+    POST: renders the ``json_text`` form field (the current textarea contents)
+    so the preview stays in sync with unsaved edits. Falls back to disk state
+    on parse error so a half-typed edit never blanks the preview.
+    """
+    job = _get_job(job_id)
+    selected_template = cv_template_choice.get_choice(job["output_folder"])
+
+    data = None
+    if request.method == "POST":
+        json_text = request.form.get("json_text", "")
+        try:
+            data = json.loads(json_text)
+        except json.JSONDecodeError:
+            data = None
+
+    html = preview.render_preview_html(
+        job["output_folder"],
+        data=data,
+        job_id=job["id"],
+        template_choice=selected_template,
+    )
+    return Response(html, mimetype="text/html")
+
+
+@bp.route("/<int:job_id>/template", methods=["POST"])
+def set_template(job_id):
+    """Persist the A/B/C choice. Preview refresh happens client-side."""
+    job = _get_job(job_id)
+    choice = (request.form.get("template") or "").lower()
+    try:
+        saved = cv_template_choice.set_choice(job["output_folder"], choice)
+    except ValueError:
+        return jsonify({"ok": False, "error": "invalid template"}), 400
+    return jsonify({"ok": True, "template": saved})

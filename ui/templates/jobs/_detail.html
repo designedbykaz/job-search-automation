@@ -1,4 +1,4 @@
-<div id="job-detail" class="jobs-detail">
+<div id="job-detail" class="jobs-detail" data-job-id="{{ job.id }}">
   <div class="p-4 border-bottom d-flex align-items-start justify-content-between">
     <div class="flex-grow-1">
       <h2 class="h5 mb-1">{{ job.title }}</h2>
@@ -69,7 +69,17 @@
             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cv-json-{{ job.id }}" type="button">JSON</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#cv-preview-{{ job.id }}" type="button">Preview</button>
+            <button class="nav-link d-inline-flex align-items-center gap-2"
+                    data-bs-toggle="tab"
+                    data-bs-target="#cv-preview-{{ job.id }}"
+                    type="button">
+              Preview
+              <span id="cv-overflow-badge-{{ job.id }}"
+                    class="cv-overflow-badge badge text-bg-warning d-none"
+                    title="Rendered content exceeds one A4 page">
+                <i class="bi bi-exclamation-triangle me-1"></i>Overflowing page
+              </span>
+            </button>
           </li>
         </ul>
         <div class="tab-content">
@@ -79,11 +89,12 @@
                       class="form-control font-monospace small cv-json-editor"
                       rows="14"
                       spellcheck="false"
-                      data-cv-textarea>{{ cv_json_text }}</textarea>
+                      data-cv-textarea
+                      data-preview-url="{{ url_for('jobs.preview_content', job_id=job.id) }}">{{ cv_json_text }}</textarea>
             <div id="cv-feedback-{{ job.id }}" class="cv-feedback small mt-2" aria-live="polite"></div>
           </div>
-          <div class="tab-pane fade p-3 small text-muted" id="cv-preview-{{ job.id }}">
-            Preview rendering comes in a later phase.
+          <div class="tab-pane fade p-0" id="cv-preview-{{ job.id }}">
+            {% include "jobs/_preview.html" %}
           </div>
         </div>
       </div>
@@ -91,11 +102,14 @@
 
     <section>
       <h3 class="section-title">Template</h3>
-      <div class="d-flex gap-2">
+      <div id="cv-template-buttons-{{ job.id }}" class="d-flex gap-2">
         {% for t in templates %}
           <button type="button"
-                  class="btn flex-grow-1 {% if t == selected_template %}btn-dark{% else %}btn-outline-secondary{% endif %}">
-            Template {{ t }}
+                  class="btn flex-grow-1 js-template-choice {% if t == selected_template %}btn-dark{% else %}btn-outline-secondary{% endif %}"
+                  data-template-choice="{{ t }}"
+                  data-template-url="{{ url_for('jobs.set_template', job_id=job.id) }}"
+                  aria-pressed="{{ 'true' if t == selected_template else 'false' }}">
+            Template {{ t | upper }}
           </button>
         {% endfor %}
       </div>

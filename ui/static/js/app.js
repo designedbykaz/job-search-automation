@@ -3,6 +3,9 @@
 
   const CONFIRM_WINDOW_MS = 3000;
   const FADE_DELAY_MS = 2500;
+  const PREVIEW_DEBOUNCE_MS = 400;
+
+  const previewTimers = new Map();
 
   document.addEventListener("keydown", function (event) {
     const isSaveCombo =
@@ -68,6 +71,102 @@
       btn.setAttribute("title", btn.dataset.originalTitle);
     }
   }
+
+  function getJobIdFor(element) {
+    const host = element.closest("[data-job-id]");
+    return host ? host.dataset.jobId : null;
+  }
+
+  function refreshPreview(jobId, textarea) {
+    if (!jobId) return;
+    const iframe = document.getElementById("cv-preview-iframe-" + jobId);
+    if (!iframe) return;
+    const url = textarea && textarea.dataset.previewUrl;
+    if (!url) return;
+
+    const body = new URLSearchParams();
+    body.set("json_text", textarea.value);
+
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        iframe.srcdoc = html;
+      })
+      .catch(function () { /* ignore transient fetch failures */ });
+  }
+
+  document.addEventListener("input", function (event) {
+    const target = event.target;
+    if (!target || !target.matches || !target.matches("[data-cv-textarea]")) return;
+
+    const jobId = getJobIdFor(target);
+    if (!jobId) return;
+
+    const existing = previewTimers.get(jobId);
+    if (existing) window.clearTimeout(existing);
+    previewTimers.set(
+      jobId,
+      window.setTimeout(function () {
+        previewTimers.delete(jobId);
+        refreshPreview(jobId, target);
+      }, PREVIEW_DEBOUNCE_MS)
+    );
+  });
+
+  document.addEventListener("click", function (event) {
+    const btn = event.target.closest(".js-template-choice");
+    if (!btn) return;
+
+    event.preventDefault();
+
+    const choice = btn.dataset.templateChoice;
+    const url = btn.dataset.templateUrl;
+    const jobId = getJobIdFor(btn);
+    if (!choice || !url || !jobId) return;
+
+    const group = document.getElementById("cv-template-buttons-" + jobId);
+    const peers = group
+      ? group.querySelectorAll(".js-template-choice")
+      : [];
+    peers.forEach(function (peer) {
+      const isActive = peer === btn;
+      peer.classList.toggle("btn-dark", isActive);
+      peer.classList.toggle("btn-outline-secondary", !isActive);
+      peer.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+    const body = new URLSearchParams();
+    body.set("template", choice);
+
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        const textarea = document.getElementById(
+          "cv-json-textarea-" + jobId
+        );
+        if (textarea) refreshPreview(jobId, textarea);
+      })
+      .catch(function () { /* ignore */ });
+  });
+
+  window.addEventListener("message", function (event) {
+    const payload = event.data;
+    if (!payload || payload.type !== "cv-preview-overflow") return;
+    const badge = document.getElementById(
+      "cv-overflow-badge-" + payload.jobId
+    );
+    if (!badge) return;
+    badge.classList.toggle("d-none", !payload.overflow);
+  });
 
   document.body.addEventListener("htmx:afterSwap", function (event) {
     const target = event.target;
