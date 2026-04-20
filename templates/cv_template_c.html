@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{NAME}} - CV (Template C)</title>
+  <style>
+    @page { size: A4; margin: 8mm; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 420px;
+      color: #888;
+      background: #fff;
+    }
+    .msg { text-align: center; max-width: 440px; padding: 2rem; }
+    .msg h2 { font-weight: 600; margin: 0 0 0.75rem 0; color: #555; }
+    .msg p { margin: 0.25rem 0; font-size: 11pt; }
+    .msg .muted { font-size: 9pt; color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="msg">
+    <h2>Template C</h2>
+    <p>Not yet designed. Template A is the default.</p>
+    <p class="muted">Intended CV holder: {{NAME}}</p>
+  </div>
+
+  <!-- Absorbs placeholders defined by the real template so fill_template
+       does not emit unreplaced-placeholder warnings for stubs. -->
+  <div style="display:none" aria-hidden="true">
+    {{CURRENT_POSITION}} {{OBJECTIVE}}
+    {{EDU_INSTITUTION}} {{EDU_DATES}} {{EDU_DEGREE}} {{EDU_MODULES}} {{EDU_PROJECT}} {{EDU_EXTRA}}
+    {{CERTIFICATIONS}}
+    {{EXP_1_ROLE}} {{EXP_1_COMPANY}} {{EXP_1_DATE}} {{EXP_1_BODY}}
+    {{EXP_2_ROLE}} {{EXP_2_COMPANY}} {{EXP_2_DATE}} {{EXP_2_BODY}}
+    {{EXP_3_ROLE}} {{EXP_3_COMPANY}} {{EXP_3_DATE}} {{EXP_3_BODY}}
+    {{EXP_4_ROLE}} {{EXP_4_COMPANY}} {{EXP_4_DATE}} {{EXP_4_BODY}}
+    {{EXP_5_ROLE}} {{EXP_5_COMPANY}} {{EXP_5_DATE}} {{EXP_5_BODY}}
+    {{EXP_6_ROLE}} {{EXP_6_COMPANY}} {{EXP_6_DATE}} {{EXP_6_BODY}}
+    {{EXP_7_ROLE}} {{EXP_7_COMPANY}} {{EXP_7_DATE}} {{EXP_7_BODY}}
+    {{SKILL_SOFTWARE}} {{SKILL_TECHNICAL}} {{SKILL_DETAIL}} {{SKILL_AI}}
+    {{SOFT_SKILL_1}} {{SOFT_SKILL_2}} {{SOFT_SKILL_3}}
+    {{LANG_1}} {{LANG_2}} {{LANG_3}}
+    {{EMAIL}} {{PHONE}} {{LINKEDIN}}
+  </div>
+</body>
+</html>
