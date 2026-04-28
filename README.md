@@ -118,8 +118,12 @@ Stubbed / not yet wired:
 job-pipeline/
   main.py                          # orchestrator (scrape + tailor + log)
   render_approved.py               # PDF render for Sheet rows marked Approved
-  render_test.py                   # dev helper: render one CV JSON
-  render_cover_letter_test.py      # dev helper: render one cover letter JSON
+  dev_scripts/                     # manual iteration helpers (see dev_scripts/README.md)
+    test_tailor.py
+    test_cover_letter.py
+    render_test.py
+    render_cover_letter_test.py
+    render_cv.py
   requirements.txt
   .env.example
   .gitignore
@@ -288,8 +292,8 @@ Reads every row where `Status == "Approved"`, finds the corresponding `cv_tailor
 
 Two scripts exist for iterating on the template or the prompt in isolation:
 
-- `[render_test.py](render_test.py)` — renders `outputs/test_single_job/cv_tailored.json` to PDF. Useful when working on `templates/cv_template.html` without running the full pipeline.
-- `[render_cover_letter_test.py](render_cover_letter_test.py)` — the cover letter equivalent; hard-codes placeholder values for `NAME`, `EMPLOYER`, and `JOB_TITLE` so the template can be reviewed without a real job.
+- `[dev_scripts/render_test.py](dev_scripts/render_test.py)` — renders `outputs/test_single_job/cv_tailored.json` to PDF. Useful when working on `templates/cv_template.html` without running the full pipeline.
+- `[dev_scripts/render_cover_letter_test.py](dev_scripts/render_cover_letter_test.py)` — the cover letter equivalent; hard-codes placeholder values for `NAME`, `EMPLOYER`, and `JOB_TITLE` so the template can be reviewed without a real job.
 
 Neither is called by `main.py`. They exist purely as developer ergonomics.
 
@@ -515,7 +519,7 @@ The second half of the pipeline. Running it opens the same Sheet, pulls every ro
 
 That final status flip is the pipeline's only write to an already-logged row. It's enough to close the loop — the operator can filter the Sheet on `Status = PDF Ready` to find everything ready to send.
 
-The cover letter is **not** rendered by this script. Today the cover letter JSON lives next to the CV JSON as data only; the `render_cover_letter_test.py` script exists to render it manually while iterating on the template. Wiring cover letter rendering into `render_approved.py` is a small, obvious next step.
+The cover letter is **not** rendered by this script. Today the cover letter JSON lives next to the CV JSON as data only; the `dev_scripts/render_cover_letter_test.py` script exists to render it manually while iterating on the template. Wiring cover letter rendering into `render_approved.py` is a small, obvious next step.
 
 ### 5.9 Templates — `[templates/cv_template.html](templates/cv_template.html)` and `[templates/cover_letter_template.html](templates/cover_letter_template.html)`
 
@@ -648,7 +652,7 @@ This means: as long as the scraper produces a stable URL for a listing, running 
 - **No retry or backoff.** Anthropic rate limits, Google Sheets quota errors, and flaky scraper requests all bubble up and are caught at the per-job level at best. Exponential backoff in `tailor.py` and `logger.py` would be a one-afternoon improvement.
 - **Robots.txt enforcement.** `can_fetch()` returns `False` when `robots.txt` disallows a URL; `get_job_description()` skips the fetch and returns `None`, and `scrape_govuk_jobs()` skips that listing without appending it. If `robots.txt` cannot be read, the scraper defaults to allowed (same as before).
 - **Single CV template.** Every cluster gets the same layout. A UX role might want a more visual CV than a Pharmacy Assistant role — see roadmap.
-- **Cover letters are generated but not auto-rendered.** `render_approved.py` only writes CV PDFs today. Cover letter PDFs require running `render_cover_letter_test.py` manually.
+- **Cover letters are generated but not auto-rendered.** `render_approved.py` only writes CV PDFs today. Cover letter PDFs require running `dev_scripts/render_cover_letter_test.py` manually.
 - **WeasyPrint install weight on Windows.** The PDF renderer needs a GTK runtime on Windows; this is the slowest part of first-time setup.
 
 ---

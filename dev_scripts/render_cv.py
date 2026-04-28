@@ -19,7 +19,7 @@ def main() -> None:
 
         # Step 2: Load HTML template
         try:
-            template_path = os.path.join("templates", "cv_template.html")
+            template_path = os.path.join("templates", "cv_template_a.html")
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
         except Exception as e:

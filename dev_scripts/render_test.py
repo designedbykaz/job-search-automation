@@ -28,7 +28,7 @@ if __name__ == "__main__":
             raise
 
         # Step 4: load template
-        template_path = Path("templates/cv_template.html")
+        template_path = Path("templates/cv_template_a.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 template = f.read()
