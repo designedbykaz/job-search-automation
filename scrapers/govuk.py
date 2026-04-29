@@ -9,16 +9,23 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from config.keywords import JOB_KEYWORDS
+from config.scraper_settings import get_scraper_settings
 
 load_dotenv()
 
 BASE_URL = "https://findajob.dwp.gov.uk"
 SEARCH_URL = "https://findajob.dwp.gov.uk/search"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-REQUEST_DELAY = 1.5  # seconds between requests
+
+# Per-scraper settings; overridable via config/scrapers.json (gitignored).
+_SETTINGS = get_scraper_settings("govuk")
+USER_AGENT = _SETTINGS["user_agent"]
+REQUEST_DELAY = _SETTINGS["request_delay"]
+ENFORCE_ROBOTS = _SETTINGS["enforce_robots"]
 
 
 def can_fetch(url):
+    if not ENFORCE_ROBOTS:
+        return True
     try:
         robots_url = BASE_URL + "/robots.txt"
         rp = RobotFileParser()
