@@ -17,4 +17,7 @@ prompts/cv_prompt.txt
 prompts/cover_letter_prompt.txt
 # v2 UI: track seed samples, ignore user-generated edits
 ui/sample_outputs/**/cv_tailored_edited.json
+# Run page operator overrides; .example siblings are committed
+config/scrapers.json
+config/keywords_override.json
 .claude/
