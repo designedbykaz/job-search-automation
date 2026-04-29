@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const CONFIRM_WINDOW_MS = 3000;
+  const CONFIRM_WINDOW_MS = 5000;
   const FADE_DELAY_MS = 2500;
   const PREVIEW_DEBOUNCE_MS = 400;
 
@@ -33,8 +33,9 @@
       clearResetConfirm(btn);
       const url = btn.dataset.resetUrl;
       if (!url || !window.htmx) return;
+      const target = btn.dataset.resetTarget || "#job-detail";
       window.htmx.ajax("POST", url, {
-        target: "#job-detail",
+        target: target,
         swap: "outerHTML",
       });
       return;

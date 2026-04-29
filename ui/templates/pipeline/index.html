@@ -2,45 +2,63 @@
 {% block title %}Run pipeline{% endblock %}
 
 {% block content %}
-<div class="page" style="max-width: 880px;">
+<div class="page" style="max-width: 1280px;">
   <h1 class="page-title">Run pipeline</h1>
 
   <form>
-    <div class="panel p-4 mb-4">
-      <h2 class="section-title">Scrapers</h2>
-      <div class="d-flex flex-column gap-2">
-        {% for s in scrapers %}
-          <label class="form-check d-flex align-items-center justify-content-between p-3 border rounded m-0">
-            <span class="d-flex align-items-center gap-2">
-              <input class="form-check-input m-0" type="checkbox"
-                     name="scraper_{{ s.id }}" {% if s.enabled %}checked{% endif %}>
-              <span>{{ s.name }}</span>
-            </span>
-            {% if s.status == 'healthy' %}
-              <span class="badge rounded-pill text-bg-success-subtle text-success fw-normal">healthy</span>
-            {% else %}
-              <span class="badge rounded-pill text-bg-light text-secondary fw-normal">{{ s.status }}</span>
-            {% endif %}
-          </label>
-        {% endfor %}
+    <div class="row g-3 mb-4">
+      <div class="col-lg-7">
+        <div class="panel p-4 mb-0 h-100">
+          <h2 class="section-title">Scrapers</h2>
+          <div class="d-flex flex-column gap-2">
+            {% for s in scrapers %}
+              <label class="form-check d-flex align-items-center justify-content-between p-3 border rounded m-0">
+                <span class="d-flex align-items-center gap-2">
+                  <input class="form-check-input m-0" type="checkbox"
+                         name="scraper_{{ s.id }}" {% if s.enabled %}checked{% endif %}>
+                  <span>{{ s.name }}</span>
+                </span>
+                {% if s.status == 'healthy' %}
+                  <span class="badge rounded-pill text-bg-success-subtle text-success fw-normal">healthy</span>
+                {% else %}
+                  <span class="badge rounded-pill text-bg-light text-secondary fw-normal">{{ s.status }}</span>
+                {% endif %}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        {% with panel=scraper_panel_ctx.panel, text=scraper_panel_ctx.text, is_edited=scraper_panel_ctx.is_edited %}
+          {% include "pipeline/_scraper_config_panel.html" %}
+        {% endwith %}
       </div>
     </div>
 
-    <div class="panel p-4 mb-4">
-      <h2 class="section-title">Keyword clusters</h2>
-      <div class="row g-2">
-        {% for c in clusters %}
-          <div class="col-md-6">
-            <label class="form-check d-flex align-items-center gap-2 p-3 border rounded m-0">
-              <input class="form-check-input m-0" type="checkbox"
-                     name="cluster_{{ c.id }}" {% if c.enabled %}checked{% endif %}>
-              <span class="flex-grow-1">
-                <span class="d-block">{{ c.name }}</span>
-                <span class="d-block text-muted small">{{ c.keywords }} keywords</span>
-              </span>
-            </label>
+    <div class="row g-3 mb-4">
+      <div class="col-lg-7">
+        <div class="panel p-4 mb-0 h-100">
+          <h2 class="section-title">Keyword clusters</h2>
+          <div class="row g-2">
+            {% for c in clusters %}
+              <div class="col-md-6">
+                <label class="form-check d-flex align-items-center gap-2 p-3 border rounded m-0">
+                  <input class="form-check-input m-0" type="checkbox"
+                         name="cluster_{{ c.id }}" {% if c.enabled %}checked{% endif %}>
+                  <span class="flex-grow-1">
+                    <span class="d-block">{{ c.name }}</span>
+                    <span class="d-block text-muted small">{{ c.keywords }} keywords</span>
+                  </span>
+                </label>
+              </div>
+            {% endfor %}
           </div>
-        {% endfor %}
+        </div>
+      </div>
+      <div class="col-lg-5">
+        {% with panel=keyword_panel_ctx.panel, text=keyword_panel_ctx.text, is_edited=keyword_panel_ctx.is_edited %}
+          {% include "pipeline/_keyword_cluster_panel.html" %}
+        {% endwith %}
       </div>
     </div>
 

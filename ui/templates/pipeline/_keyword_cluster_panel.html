@@ -1,0 +1,46 @@
+{# Keyword cluster panel: editable JSON for config/keywords_override.json. #}
+{# Re-rendered wholesale by the reset endpoint; save uses an OOB feedback partial. #}
+<div id="{{ panel.id }}" class="panel p-4 mb-0 h-100 d-flex flex-column">
+  <div class="d-flex align-items-center mb-2">
+    <h2 class="section-title mb-0 me-2">Keyword overrides</h2>
+    <span id="{{ panel.edited_badge_id }}">
+      {% if is_edited %}
+        <span id="{{ panel.edited_badge_id }}" class="badge text-bg-secondary ms-2">edited</span>
+      {% endif %}
+    </span>
+    <div class="cv-actions ms-auto d-flex gap-1">
+      <button type="button"
+              class="btn btn-sm btn-outline-secondary"
+              title="Save"
+              aria-label="Save edits"
+              hx-post="{{ url_for(panel.save_url_endpoint) }}"
+              hx-include="#{{ panel.textarea_id }}"
+              hx-target="#{{ panel.feedback_id }}"
+              hx-swap="innerHTML">
+        <i class="bi bi-floppy"></i>
+      </button>
+      <span id="{{ panel.reset_wrapper_id }}">
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary js-reset-cv"
+                title="Reset to defaults"
+                aria-label="Reset to defaults"
+                data-reset-url="{{ url_for(panel.reset_url_endpoint) }}"
+                data-reset-target="#{{ panel.id }}"
+                {% if not is_edited %}disabled{% endif %}>
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+      </span>
+    </div>
+  </div>
+
+  <p class="text-muted small mb-2">
+    Cluster names as keys, arrays of keywords as values. An empty object means use defaults from <code>config/keywords.py</code>. Saved overrides apply on the next pipeline run.
+  </p>
+
+  <textarea id="{{ panel.textarea_id }}"
+            name="{{ panel.form_field }}"
+            class="form-control font-monospace small flex-grow-1"
+            rows="14"
+            spellcheck="false">{{ text }}</textarea>
+  <div id="{{ panel.feedback_id }}" class="cv-feedback small mt-2" aria-live="polite"></div>
+</div>

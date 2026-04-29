@@ -1,0 +1,34 @@
+{# Save feedback for a Run page config panel.
+   On success: green "Saved" + OOB swaps that show the edited badge and
+   re-enable the reset button. Optional warning line for non-blocking issues.
+   On failure: red error message; no OOB swaps so the panel state is untouched. #}
+{% if success %}
+<span class="cv-feedback-message text-success">
+  <i class="bi bi-check-circle me-1"></i>Saved
+</span>
+{% if warnings %}
+<div class="cv-feedback-message text-warning small mt-1">
+  <i class="bi bi-exclamation-triangle me-1"></i>
+  Unknown cluster name{{ 's' if warnings|length > 1 else '' }}: {{ warnings | join(', ') }}. Saved anyway.
+</div>
+{% endif %}
+<span id="{{ panel.edited_badge_id }}" hx-swap-oob="outerHTML">
+  <span id="{{ panel.edited_badge_id }}" class="badge text-bg-secondary ms-2">edited</span>
+</span>
+<span id="{{ panel.reset_wrapper_id }}" hx-swap-oob="outerHTML">
+  <span id="{{ panel.reset_wrapper_id }}">
+    <button type="button"
+            class="btn btn-sm btn-outline-secondary js-reset-cv"
+            title="Reset to defaults"
+            aria-label="Reset to defaults"
+            data-reset-url="{{ url_for(panel.reset_url_endpoint) }}"
+            data-reset-target="#{{ panel.id }}">
+      <i class="bi bi-arrow-counterclockwise"></i>
+    </button>
+  </span>
+</span>
+{% else %}
+<span class="cv-feedback-message text-danger">
+  <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+</span>
+{% endif %}
