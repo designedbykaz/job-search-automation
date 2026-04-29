@@ -10,6 +10,8 @@ It was built to solve a very annoying problem: scanning UK job boards every day 
 
 A separate Flask front-end lives under `ui/` and runs from its own virtual environment at `ui/.venv/`, isolated from the pipeline's dependencies. On Windows (PowerShell), activate it with `ui\.venv\Scripts\Activate.ps1`; on macOS or Linux, use `source ui/.venv/bin/activate`. On a fresh clone, run `pip install -r ui/requirements.txt` inside the activated venv. Start the app with `python -m ui.run` and open `http://127.0.0.1:5000`.
 
+The **Run** page (`/run/`) has editable JSON panels for operator overrides: `config/scrapers.json` (per-scraper request delay, user agent, and whether `robots.txt` is enforced) and `config/keywords_override.json` (replaces the default keyword list for any cluster you name in the object). Those apply on the next pipeline run. The **Jobs** page opens a detail pane per listing with editable tailored CV JSON (save and reset), a live HTML preview, and Template A / B / C buttons. Saving edits writes `cv_tailored_edited.json` beside the immutable `cv_tailored.json`; `render_approved.py` prefers the edited file when present.
+
 ---
 
 ## Table of contents
@@ -54,6 +56,7 @@ Working today:
 - Claude-based CV tailoring and cover letter generation.
 - Google Sheets logging with URL-based cross-run dedup.
 - Manual approval flow and PDF rendering of approved rows.
+- **v2 Flask UI** (`ui/`): edit tailored CV JSON, switch between CV templates A/B/C, preview in the browser, and edit scraper / keyword overrides from the Run page. The Sheet remains the approval surface.
 
 Stubbed / not yet wired:
 
@@ -140,6 +143,11 @@ job-pipeline/
 
   config/
     keywords.py                    # cluster toggles + keyword lists
+    scraper_settings.py            # reads config/scrapers.json with fallbacks
+    scrapers.example.json          # committed shape for per-scraper overrides
+    keywords_override.example.json # committed shape for keyword overrides (often {})
+    scrapers.json                  # gitignored; operator overrides (delay, UA, robots)
+    keywords_override.json         # gitignored; per-cluster keyword list overrides
 
   content/
     base_cv_content.example.json   # commit-safe template
@@ -154,7 +162,9 @@ job-pipeline/
     cover_letter_prompt.txt        # gitignored
 
   templates/
-    cv_template.html               # WeasyPrint CV template (A4, DM Sans)
+    cv_template_a.html             # WeasyPrint CV template (A4, DM Sans), primary layout
+    cv_template_b.html             # placeholder stub until B is designed
+    cv_template_c.html             # placeholder stub until C is designed
     cover_letter_template.html     # WeasyPrint cover letter template
 
   outputs/                         # gitignored; one folder per day, per job
@@ -162,9 +172,22 @@ job-pipeline/
       govuk_title_employer/
         job.json
         cv_tailored.json
+        cv_tailored_edited.json    # optional; v2 UI saves edits here; renderer prefers it
+        cv_template_choice.json    # v2 UI persists which template (a/b/c) to use
         cover_letter_tailored.json
         cv_rendered.html
         cv_output.pdf
+
+  ui/                              # v2 Flask app (own venv; see section above)
+    app.py
+    run.py
+    requirements.txt
+    .venv/                         # gitignored; created locally
+    routes/
+    services/
+    templates/
+    static/
+    sample_outputs/                # seeded sample jobs for local UI testing
 ```
 
 ### 2.3 The four pipeline stages
@@ -206,7 +229,7 @@ pip install -r requirements.txt
 The runtime dependencies are listed in `[requirements.txt](requirements.txt)`:
 
 - `anthropic` — Claude API client used by `pipeline/tailor.py`.
-- `weasyprint` — HTML-to-PDF renderer used by `render_approved.py` and the two `render_*_test.py` helpers.
+- `weasyprint` — HTML-to-PDF renderer used by `render_approved.py` and helpers under `dev_scripts/` (for example `render_test.py`).
 - `gspread`, `google-auth`, `google-auth-oauthlib` — Google Sheets client and service-account credentials.
 - `python-dotenv` — loads `.env` at startup.
 - `requests`, `beautifulsoup4` — used by `scrapers/govuk.py`.
@@ -228,7 +251,7 @@ GOOGLE_CREDENTIALS_PATH=google_credentials.json
 
 ### 3.4 Content files
 
-The pipeline reads four operator-owned files at runtime, all gitignored. For each one there is a committed `.example` version showing the expected shape:
+The pipeline reads several operator-owned files at runtime (content, prompts, and config overrides), all gitignored. For each one there is a committed `.example` version showing the expected shape:
 
 
 | Runtime file                      | Committed template                        | Purpose                                                |
@@ -237,9 +260,11 @@ The pipeline reads four operator-owned files at runtime, all gitignored. For eac
 | `content/master_profile.json`     | `content/master_profile.example.json`     | Nested "reservoir" Claude draws from                   |
 | `prompts/cv_prompt.txt`           | `prompts/cv_prompt.example.txt`           | Prompt template for CV tailoring                       |
 | `prompts/cover_letter_prompt.txt` | `prompts/cover_letter_prompt.example.txt` | Prompt template for cover letter drafting              |
+| `config/scrapers.json`            | `config/scrapers.example.json`            | Per-scraper `request_delay`, `user_agent`, `enforce_robots` |
+| `config/keywords_override.json`  | `config/keywords_override.example.json`  | Replaces the default keyword list for any cluster key present; missing clusters keep `config/keywords.py` defaults |
 
 
-The gitignored versions live alongside the examples. First-time setup is essentially: copy each `.example` to the real filename, fill it in, leave the `.example` alone.
+The gitignored versions live alongside the examples. First-time setup is essentially: copy each `.example` to the real filename, fill it in, leave the `.example` alone. Keyword and scraper overrides are optional; you can also create them from the v2 UI Run page.
 
 ### 3.5 Google Sheets setup
 
@@ -286,16 +311,17 @@ Intended to load already-approved jobs from the Sheet and only run the tailoring
 python render_approved.py
 ```
 
-Reads every row where `Status == "Approved"`, finds the corresponding `cv_tailored.json` under the stored Output Folder path, fills the HTML template, writes both `cv_rendered.html` and `cv_output.pdf` into that folder, then flips the Sheet's Status cell to `PDF Ready`. Rows with no Output Folder, or a missing `cv_tailored.json`, are skipped with a warning.
+Reads every row where `Status == "Approved"`, finds the corresponding output folder under the stored path, prefers `cv_tailored_edited.json` over `cv_tailored.json` when present, fills the chosen HTML template (`cv_template_choice.json` selects A/B/C), writes both `cv_rendered.html` and `cv_output.pdf` into that folder, then flips the Sheet's Status cell to `PDF Ready`. Rows with no Output Folder, or no tailored CV JSON, are skipped with a warning.
 
 ### 4.5 Standalone dev scripts
 
-Two scripts exist for iterating on the template or the prompt in isolation:
+Five helpers live under `dev_scripts/` (see [dev_scripts/README.md](dev_scripts/README.md)). None are called by `main.py`; they exist for manual iteration.
 
-- `[dev_scripts/render_test.py](dev_scripts/render_test.py)` — renders `outputs/test_single_job/cv_tailored.json` to PDF. Useful when working on `templates/cv_template.html` without running the full pipeline.
-- `[dev_scripts/render_cover_letter_test.py](dev_scripts/render_cover_letter_test.py)` — the cover letter equivalent; hard-codes placeholder values for `NAME`, `EMPLOYER`, and `JOB_TITLE` so the template can be reviewed without a real job.
-
-Neither is called by `main.py`. They exist purely as developer ergonomics.
+- `[dev_scripts/test_tailor.py](dev_scripts/test_tailor.py)` — run only the CV tailoring step against a single in-memory job dict.
+- `[dev_scripts/test_cover_letter.py](dev_scripts/test_cover_letter.py)` — same for cover letter tailoring.
+- `[dev_scripts/render_test.py](dev_scripts/render_test.py)` — renders `outputs/test_single_job/cv_tailored.json` to PDF via `templates/cv_template_a.html`.
+- `[dev_scripts/render_cover_letter_test.py](dev_scripts/render_cover_letter_test.py)` — cover letter equivalent; uses placeholder `NAME` / `EMPLOYER` / `JOB_TITLE` so the template can be reviewed without a real job.
+- `[dev_scripts/render_cv.py](dev_scripts/render_cv.py)` — renders the base CV from `content/base_cv_content.json` to a static PDF (no tailoring).
 
 ---
 
@@ -326,18 +352,26 @@ A handful of design notes worth knowing:
 
 Despite being named `govuk.py`, the scraper actually targets `findajob.dwp.gov.uk` — that's the live job board. The filename is a holdover from when GOV.UK Jobs and the DWP service were (briefly) easier to conflate.
 
-Key constants at the top of the file:
+Requests use settings loaded once at module import from `[config/scraper_settings.py](config/scraper_settings.py)` via `get_scraper_settings("govuk")`. Defaults match the previous hard-coded values; the operator can override `request_delay`, `user_agent`, and `enforce_robots` per scraper in `config/scrapers.json` (or from the v2 UI Run page):
+
+```python
+from config.scraper_settings import get_scraper_settings
+_SETTINGS = get_scraper_settings("govuk")
+USER_AGENT = _SETTINGS["user_agent"]
+REQUEST_DELAY = _SETTINGS["request_delay"]
+ENFORCE_ROBOTS = _SETTINGS["enforce_robots"]
+```
+
+Base URL and search URL stay in the module:
 
 ```python
 BASE_URL = "https://findajob.dwp.gov.uk"
 SEARCH_URL = "https://findajob.dwp.gov.uk/search"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ..."
-REQUEST_DELAY = 1.5
 ```
 
 `REQUEST_DELAY` is enforced with a `time.sleep()` before every job-detail request; the keyword loop also sleeps between search pages. This keeps the scraper polite without needing an async client.
 
-`can_fetch()` reads `/robots.txt` via Python's `urllib.robotparser`. Today it is informational only — it prints a warning if a URL is disallowed but proceeds anyway, on the basis that the scraper runs once or twice a day at low volume. Tightening this to a hard stop is a one-line change.
+`can_fetch()` reads `/robots.txt` via Python's `urllib.robotparser`. When `ENFORCE_ROBOTS` is true and a URL is disallowed, `get_job_description()` skips the fetch and returns `None`, and `scrape_govuk_jobs()` skips appending that listing. If `robots.txt` itself cannot be read, the scraper logs a warning and defaults to allowed. Set `enforce_robots` to `false` in `config/scrapers.json` to skip robots checks entirely.
 
 The flow for each keyword is:
 
@@ -346,10 +380,7 @@ The flow for each keyword is:
 3. For each card, extract title, employer, location, posted date, URL from the listing DOM.
 4. Follow the URL and call `get_job_description()` to fetch the full job body plus a best-effort closing date and contact info (email via regex, phone number as fallback).
 
-Two oddities worth knowing:
-
-- There is a `_extract_listing_fields()` helper near the top with `TODO: Confirm markup` comments. It is **not called** by the active `scrape_govuk_jobs()` path, which parses cards inline. `_extract_listing_fields` is a legacy placeholder from an earlier experiment and can be deleted.
-- `get_job_description()` tries `div#job-description` first and falls back to `main`. Robustness comes from the fallback, not from asserting the primary selector exists.
+`get_job_description()` tries `div#job-description` first and falls back to `main`. Robustness comes from the fallback, not from asserting the primary selector exists.
 
 Every returned dict has the same shape: `title`, `employer`, `location`, `date`, `url`, `description`, `closing_date`, `contact_info`, `source`. Downstream stages only rely on these keys.
 
@@ -429,7 +460,9 @@ JOB_KEYWORDS = [
 
 That flat list is what the scraper iterates over. The mapping is what `filter_by_keywords()` uses to tag the cluster. Turning off a cluster therefore both stops it being searched **and** stops any of its keywords being matched on accident.
 
-This toggle is one of the pieces that will transplant cleanly into the planned Flask UI: checkboxes for clusters.
+After the initial build, a merge block at the end of `[config/keywords.py](config/keywords.py)` loads `config/keywords_override.json` when the file exists. For each cluster name in that object whose value is a list of strings, the default list in `KEYWORDS_BY_CLUSTER` is replaced; clusters not mentioned keep their Python defaults. Then `JOB_KEYWORDS` is rebuilt so scrapers and filters see the merged set. The override file is gitignored; you can edit it by hand or save from the v2 UI Run page. A malformed file is ignored at import time and the defaults apply.
+
+The v2 Run page shows cluster checkboxes as UI scaffolding; `ACTIVE_CLUSTERS` and `KEYWORDS_BY_CLUSTER` in `keywords.py` remain the pipeline source of truth until those controls are wired to the orchestrator.
 
 ### 5.5 Tailoring — `[pipeline/tailor.py](pipeline/tailor.py)`
 
@@ -441,7 +474,7 @@ Two functions, `tailor_cv()` and `tailor_cover_letter()`, both the same shape:
   ```python
    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
    message = client.messages.create(
-       model="claude-opus-4-6",
+       model=os.getenv("CLAUDE_MODEL", "claude-opus-4-6"),
        max_tokens=4096,
        messages=[{"role": "user", "content": filled_prompt}],
    )
@@ -452,7 +485,7 @@ Two functions, `tailor_cv()` and `tailor_cover_letter()`, both the same shape:
 
 `tailor_cv()` passes the entire `master_profile["cv"]` subtree into `{{MASTER_PROFILE}}`; `tailor_cover_letter()` passes `master_profile["cover_letter"]`. That is what the split in the master profile JSON exists for — neither prompt ever sees material intended for the other.
 
-One thing to verify before running: the model string `"claude-opus-4-6"` is hard-coded in both functions. If you are running this against a different Claude model, change both constants.
+Both API calls use `model=os.getenv("CLAUDE_MODEL", "claude-opus-4-6")`. Set `CLAUDE_MODEL` in `.env` to point at a different Claude model identifier without editing code.
 
 ### 5.6 Prompt contracts — `[prompts/cv_prompt.example.txt](prompts/cv_prompt.example.txt)` and `[prompts/cover_letter_prompt.example.txt](prompts/cover_letter_prompt.example.txt)`
 
@@ -512,22 +545,26 @@ Row content maps directly from the job dict, with `Priority`, `Applied`, and `No
 The second half of the pipeline. Running it opens the same Sheet, pulls every row with `Status == "Approved"`, and for each one:
 
 1. Read `Output Folder` from the row — if missing, warn and skip.
-2. Open `{output_folder}/cv_tailored.json` — if missing, warn and skip.
-3. Run `fill_template(tailored_cv_dict)`, which opens `templates/cv_template.html` and does `html.replace("{{KEY}}", value)` for every key/value in the JSON. Lists are joined with `", "`. Any `{{...}}` placeholder left over after the pass is printed as a warning — so you notice immediately if the tailored JSON is missing a key.
+2. Open `{output_folder}/cv_tailored_edited.json` if present, otherwise `{output_folder}/cv_tailored.json` — if neither exists, warn and skip. (The v2 UI Jobs editor creates `cv_tailored_edited.json` when you save edits; reset deletes it.)
+3. If `{output_folder}/cv_template_choice.json` exists, read its `"template"` key (`"a"`, `"b"`, or `"c"`); otherwise default to `"a"`. Run `fill_template(tailored_cv_dict, template_path=...)` against `templates/cv_template_{a,b,c}.html`. Today the A/B/C buttons on the Jobs detail pane persist that choice file.
 4. Write `cv_rendered.html` and `cv_output.pdf` into the same folder.
 5. Find the matching Sheet row by Job URL (using `_find_row_and_status_col`) and flip its Status cell to `PDF Ready`.
+
+`fill_template()` loads the chosen HTML and does `html.replace("{{KEY}}", value)` for every key in the tailored dict (lists joined with `", "`). Any `{{...}}` still present after the pass is printed as a warning.
 
 That final status flip is the pipeline's only write to an already-logged row. It's enough to close the loop — the operator can filter the Sheet on `Status = PDF Ready` to find everything ready to send.
 
 The cover letter is **not** rendered by this script. Today the cover letter JSON lives next to the CV JSON as data only; the `dev_scripts/render_cover_letter_test.py` script exists to render it manually while iterating on the template. Wiring cover letter rendering into `render_approved.py` is a small, obvious next step.
 
-### 5.9 Templates — `[templates/cv_template.html](templates/cv_template.html)` and `[templates/cover_letter_template.html](templates/cover_letter_template.html)`
+### 5.9 Templates — `[templates/cv_template_a.html](templates/cv_template_a.html)`, `[templates/cv_template_b.html](templates/cv_template_b.html)`, `[templates/cv_template_c.html](templates/cv_template_c.html)`, and `[templates/cover_letter_template.html](templates/cover_letter_template.html)`
 
-Two WeasyPrint-targeted HTML files. Both use DM Sans, A4 page size, 8mm margins, and neutral black / grey typography with hairline dividers. Everything is inline `<style>` because WeasyPrint does not need a build step.
+Four WeasyPrint-targeted HTML files for output. The three CV templates and the cover letter template use DM Sans, A4 page size, 8mm margins, and neutral black / grey typography with hairline dividers (where designed). Everything is inline `<style>` because WeasyPrint does not need a build step.
 
-The placeholder contract is intentionally simple: every `{{KEY}}` in the HTML is replaced with the matching value from the tailored JSON. That keeps the renderer code boring (one `str.replace` per key) and the template readable as a designer's document, not a programmer's one.
+**CV:** `cv_template_a.html` is the full designed layout. `cv_template_b.html` and `cv_template_c.html` are minimal placeholder stubs (friendly "not yet designed" pages) that still declare the same `{{KEY}}` placeholders so `fill_template()` does not leave raw braces in output or spam warnings. The v2 Jobs detail pane lets you switch A/B/C; `render_approved.py` reads `cv_template_choice.json` and picks the matching file.
 
-The CV template expects the same keys as `base_cv_content.json`: `NAME`, `CURRENT_POSITION`, `OBJECTIVE`, `EDU_`*, `CERTIFICATIONS`, `EXP_1_`* through `EXP_7_*`, `SKILL_*`, `SOFT_SKILL_1..3`, `LANG_1..3`, `EMAIL`, `PHONE`, `LINKEDIN`. Missing keys show as a literal `{{KEY}}` in the PDF — which is why the warning in `render_approved.py` matters.
+The placeholder contract is the same on all three CV templates: every `{{KEY}}` in the HTML is replaced with the matching value from the tailored JSON (lists joined with `", "`). That keeps the renderer code boring (one `str.replace` per key).
+
+The CV templates expect the same keys as `base_cv_content.json`: `NAME`, `CURRENT_POSITION`, `OBJECTIVE`, `EDU_`*, `CERTIFICATIONS`, `EXP_1_`* through `EXP_7_*`, `SKILL_*`, `SOFT_SKILL_1..3`, `LANG_1..3`, `EMAIL`, `PHONE`, `LINKEDIN`. Missing keys show as a literal `{{KEY}}` in the PDF on Template A — which is why the warning in `render_approved.py` matters.
 
 The cover letter template expects `NAME`, `JOB_TITLE`, `EMPLOYER`, and the four paragraph keys produced by the cover letter prompt.
 
@@ -650,8 +687,9 @@ This means: as long as the scraper produces a stable URL for a listing, running 
 - **Selector fragility on findajob.dwp.gov.uk.** The inline parser in `scrape_govuk_jobs()` relies on DOM classes (`div.search-result`, `h3.govuk-heading-s a.govuk-link`, `ul.govuk-list.search-result-details`) that the DWP can change without notice.
 - **Model configurable via `CLAUDE_MODEL` environment variable.** Both Claude calls in `[pipeline/tailor.py](pipeline/tailor.py)` use `os.getenv("CLAUDE_MODEL", "claude-opus-4-6")`. Defaults to `claude-opus-4-6` if not set; set `CLAUDE_MODEL` in `.env` to use a different model identifier.
 - **No retry or backoff.** Anthropic rate limits, Google Sheets quota errors, and flaky scraper requests all bubble up and are caught at the per-job level at best. Exponential backoff in `tailor.py` and `logger.py` would be a one-afternoon improvement.
-- **Robots.txt enforcement.** `can_fetch()` returns `False` when `robots.txt` disallows a URL; `get_job_description()` skips the fetch and returns `None`, and `scrape_govuk_jobs()` skips that listing without appending it. If `robots.txt` cannot be read, the scraper defaults to allowed (same as before).
-- **Single CV template.** Every cluster gets the same layout. A UX role might want a more visual CV than a Pharmacy Assistant role — see roadmap.
+- **Robots.txt enforcement.** `can_fetch()` returns `False` when `robots.txt` disallows a URL; `get_job_description()` skips the fetch and returns `None`, and `scrape_govuk_jobs()` skips that listing without appending it. If `robots.txt` cannot be read, the scraper defaults to allowed (same as before). Disable checks entirely with `enforce_robots: false` in `config/scrapers.json`.
+- **Templates B and C are placeholder stubs.** Only Template A is a full CV design. The A/B/C scaffolding is wired end to end: selector on the v2 Jobs detail pane, per-job `cv_template_choice.json`, and branching in `render_approved.py`. Designing real B and C layouts is follow-up work.
+- **The v2 UI is not the approval surface yet.** Approve, Render PDF, Archive, and Download controls on the Jobs detail pane are intentionally disabled; you still flip `Approved` in the Sheet and run `render_approved.py` from the terminal.
 - **Cover letters are generated but not auto-rendered.** `render_approved.py` only writes CV PDFs today. Cover letter PDFs require running `dev_scripts/render_cover_letter_test.py` manually.
 - **WeasyPrint install weight on Windows.** The PDF renderer needs a GTK runtime on Windows; this is the slowest part of first-time setup.
 
@@ -660,8 +698,8 @@ This means: as long as the scraper produces a stable URL for a listing, running 
 ## 9. Roadmap
 
 - **NHS Jobs + Totaljobs scrapers via Apify.** Stubs already exist as commented imports in `[main.py](main.py)`; the dep is already commented into `[requirements.txt](requirements.txt)`. Each one returns the same dict shape as `scrape_govuk_jobs()` and gets concatenated into `all_jobs`.
-- **Cluster-specific CV templates.** `KEYWORDS_BY_CLUSTER` already tags every job with its cluster, and `job["cluster"]` is carried all the way to the renderer. The natural extension is a `templates/cv_template_{cluster}.html` lookup in `fill_template()` — e.g. a more visual layout for `ux_design` and a more clinical one for `nhs_healthcare`.
-- **Flask UI as the approval surface.** The Google Sheet is the minimum viable review UI. A Flask app reading the same per-job folder as a source of truth, with Approve / Render buttons that call the existing Python functions directly, would let the operator skip the Sheet round-trip entirely. The cluster toggles in `config/keywords.py` would become the configuration screen.
+- **Cluster-aware CV layouts.** `KEYWORDS_BY_CLUSTER` already tags every job with its cluster, and `job["cluster"]` is carried through to logging. Template A/B/C exists today as operator-selected layouts. Next step is real designs for B and C and optional automatic `cluster -> default template` mapping in `fill_template()`.
+- **v2 UI: finish the approval loop.** The Flask app already edits tailored JSON, previews, switches templates, and edits scraper / keyword overrides on the Run page. Still to wire: Approve / Render / Archive actions that call the existing Python entry points, Run page cluster togglers tied to `ACTIVE_CLUSTERS`, and a one-click pipeline run so the Sheet is not the only control plane.
 - **Location filtering.** The `location` field is already captured and logged; filtering jobs by it (e.g. "only within 30 miles of X") would live in `pipeline/dedup.py` as a third pass after `filter_by_keywords()`.
 - **Tailor-only mode.** Load rows where `Status == "Approved"` but no `cv_tailored.json` exists yet, and run only stage 3 against them. Useful when the operator approved in bulk and wants to tailor in a batch.
 - **Auto-render cover letter PDFs.** Extend `render_approved.py` to also call a `fill_template()` pass on `cover_letter_template.html` + `cover_letter_tailored.json`, writing `cover_letter_output.pdf` next to the CV.
