@@ -1,0 +1,18 @@
+{
+  "_readme": "Copy this file to scrapers.json and adjust per-scraper settings. scrapers.json is gitignored. Omitted scrapers fall back to the hardcoded defaults in config/scraper_settings.py.",
+  "govuk": {
+    "request_delay": 1.5,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "enforce_robots": true
+  },
+  "nhs": {
+    "request_delay": 1.5,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "enforce_robots": true
+  },
+  "totaljobs": {
+    "request_delay": 1.5,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "enforce_robots": true
+  }
+}

@@ -327,8 +327,30 @@ KEYWORDS_BY_CLUSTER = {
 
 }
 
-# ?? Flat keyword list for scrapers ????????????????????????????
-# Built automatically from active clusters � do not edit manually
+# Apply operator overrides from config/keywords_override.json (gitignored)
+# when present. Each override key replaces the default list for its cluster;
+# unknown cluster names are ignored. Any read or parse error falls through to
+# the hardcoded defaults silently so a malformed file never crashes import.
+import json as _json
+from pathlib import Path as _Path
+
+_OVERRIDE_PATH = _Path("config") / "keywords_override.json"
+if _OVERRIDE_PATH.is_file():
+    try:
+        _overrides = _json.loads(_OVERRIDE_PATH.read_text(encoding="utf-8"))
+        if isinstance(_overrides, dict):
+            for _cluster_name, _kw_list in _overrides.items():
+                if (
+                    _cluster_name in KEYWORDS_BY_CLUSTER
+                    and isinstance(_kw_list, list)
+                    and all(isinstance(_k, str) for _k in _kw_list)
+                ):
+                    KEYWORDS_BY_CLUSTER[_cluster_name] = list(_kw_list)
+    except Exception:
+        pass
+
+# Flat keyword list for scrapers; rebuilt after any overrides have been
+# merged so downstream consumers see the final merged set transparently.
 JOB_KEYWORDS = [
     keyword
     for cluster_name, keywords in KEYWORDS_BY_CLUSTER.items()
