@@ -81,11 +81,14 @@ def get_job_description(job_url, session):
         return empty
 
 
-def scrape_govuk_jobs():
+def scrape_govuk_jobs(keywords=None):
     """
-    Search GOV.UK Jobs for each JOB_KEYWORDS entry; return list of job dicts.
+    Search GOV.UK Jobs for each keyword; return list of job dicts.
     Keys: title, employer, location, date, url, description, source.
+    If keywords is None, falls back to config.keywords.JOB_KEYWORDS.
     """
+    if keywords is None:
+        keywords = JOB_KEYWORDS
     results = []
 
     if not can_fetch(SEARCH_URL):
@@ -95,7 +98,7 @@ def scrape_govuk_jobs():
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
 
-    for keyword in JOB_KEYWORDS:
+    for keyword in keywords:
         params = {"q": keyword}
         print(f"Searching GOV.UK Jobs for: {keyword}")
 
