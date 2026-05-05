@@ -1,0 +1,21 @@
+{% if success %}
+  <div class="alert alert-success mb-0" role="status">
+    <p class="mb-2 fw-semibold">Open search finished</p>
+    <ul class="mb-2 small ps-3">
+      <li>Jobs found (raw): {{ summary.found }}</li>
+      <li>Unique after deduplication: {{ summary.unique }}</li>
+      <li>Terms searched: {{ summary.term_count }}</li>
+    </ul>
+    {% if summary.warnings %}
+      <p class="small mb-2"><strong>Note:</strong></p>
+      <ul class="small ps-3 mb-2">
+        {% for w in summary.warnings %}<li>{{ w }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    <p class="small mb-0">Check your Sheet for new entries.</p>
+  </div>
+{% else %}
+  <div class="alert alert-danger mb-0" role="alert">
+    {{ error or "Something went wrong." }}
+  </div>
+{% endif %}

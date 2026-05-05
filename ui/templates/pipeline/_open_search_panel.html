@@ -1,0 +1,32 @@
+<div class="panel p-4">
+  <h2 class="section-title">Open search (GOV.UK Jobs)</h2>
+  <p class="text-muted small mb-3">
+    Enter one search term per line. Each term is combined with the optional location and sent to the GOV.UK scraper; unique jobs are logged to your Google Sheet with cluster <code>open_search</code>.
+  </p>
+
+  <form
+    hx-post="{{ url_for('pipeline.run_open_search') }}"
+    hx-target="#open-search-result"
+    hx-swap="innerHTML"
+    hx-disabled-elt="button[type='submit']">
+    <div class="mb-3">
+      <label class="form-label small" for="open-search-terms">Search terms</label>
+      <textarea id="open-search-terms" name="terms" class="form-control font-monospace"
+                rows="8" spellcheck="false"
+                placeholder="waiter&#10;bar staff&#10;admin assistant"></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small" for="open-search-location">Location (optional)</label>
+      <input id="open-search-location" type="text" name="location" class="form-control"
+             placeholder="Slough" autocomplete="off">
+    </div>
+    <button type="submit" class="btn btn-dark w-100 py-2 d-inline-flex align-items-center justify-content-center gap-2 position-relative">
+      <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
+      <span>Run open search</span>
+    </button>
+  </form>
+  <p class="text-muted small mt-2 mb-0">
+    This may take several minutes depending on the number of terms.
+  </p>
+  <div id="open-search-result" class="mt-3" aria-live="polite"></div>
+</div>
