@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request
 
-from ui.services import keyword_overrides, scraper_config
+from ui.services import keyword_overrides, open_search, scraper_config
 
 bp = Blueprint("pipeline", __name__, url_prefix="/run")
 
@@ -109,4 +109,18 @@ def reset_keyword_overrides():
     return render_template(
         "pipeline/_keyword_cluster_panel.html",
         **_keyword_panel_context(),
+    )
+
+
+@bp.route("/open-search", methods=["POST"])
+def run_open_search():
+    raw_terms = request.form.get("terms", "")
+    location = request.form.get("location", "").strip()
+    terms = [t.strip() for t in raw_terms.splitlines() if t.strip()]
+    ok, error, summary = open_search.run_open_search(terms, location)
+    return render_template(
+        "pipeline/_open_search_result.html",
+        success=ok,
+        error=error,
+        summary=summary,
     )
