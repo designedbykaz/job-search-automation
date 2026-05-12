@@ -21,3 +21,4 @@ ui/sample_outputs/**/cv_tailored_edited.json
 config/scrapers.json
 config/keywords_override.json
 .claude/
+.idea/
