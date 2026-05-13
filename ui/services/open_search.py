@@ -34,8 +34,8 @@ def run_open_search(terms: list[str], location: str) -> tuple[bool, str | None, 
     queries = [f"{term} {loc}".strip() for term in valid_terms]
 
     jobs = scrape_govuk_jobs(keywords=queries)
-    found = len(jobs)
     unique_jobs = deduplicate(jobs)
+    found = len(unique_jobs)
     for job in unique_jobs:
         job["cluster"] = "open_search"
 
