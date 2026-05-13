@@ -3,230 +3,81 @@ from pathlib import Path
 
 from flask import Blueprint, Response, abort, jsonify, render_template, request
 
-from ui.services import cv_template_choice, preview, tailored_cv
+from ui.services import cv_template_choice, preview, sheets, tailored_cv
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
 
-
-SAMPLE_OUTPUTS_ROOT = Path(__file__).resolve().parent.parent / "sample_outputs"
-
-
-JOBS = [
-    {
-        "id": 1,
-        "title": "Senior Product Designer",
-        "employer": "NHS Digital",
-        "location": "Leeds",
-        "cluster": "ux_design",
-        "status": "to_review",
-        "closing_date": "2026-05-02",
-        "date_found": "2026-04-18",
-        "listing_url": "https://example.com/jobs/1",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_01"),
-        "description": [
-            "We are looking for an experienced Senior Product Designer to join our digital team working on critical healthcare services used by millions across the UK.",
-            "You will lead design work across multiple product areas, working closely with user researchers, product managers, and developers to create accessible, user-centered services that meet the needs of patients and healthcare professionals.",
-            "The role requires someone with strong interaction design skills, experience working within government or healthcare contexts, and a deep understanding of accessibility requirements.",
-        ],
-    },
-    {
-        "id": 2,
-        "title": "UX Researcher",
-        "employer": "Department for Education",
-        "location": "London",
-        "cluster": "user_research",
-        "status": "to_review",
-        "closing_date": "2026-04-28",
-        "date_found": "2026-04-18",
-        "listing_url": "https://example.com/jobs/2",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_02"),
-        "description": [
-            "Join our user research team to shape how teachers, learners, and school leaders interact with education services.",
-            "You will plan and run mixed-methods research, synthesise findings, and work with designers and policy colleagues to turn insights into service improvements.",
-        ],
-    },
-    {
-        "id": 3,
-        "title": "Service Designer",
-        "employer": "HMRC",
-        "location": "Manchester",
-        "cluster": "service_design",
-        "status": "approved",
-        "closing_date": "2026-05-10",
-        "date_found": "2026-04-18",
-        "listing_url": "https://example.com/jobs/3",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_03"),
-        "description": [
-            "Design end-to-end services for taxpayers and agents, working across channels and teams.",
-            "You will map current-state services, identify friction, and prototype improvements that are testable with real users.",
-        ],
-    },
-    {
-        "id": 4,
-        "title": "Product Manager",
-        "employer": "Home Office",
-        "location": "London",
-        "cluster": "product_management",
-        "status": "to_review",
-        "closing_date": "2026-04-25",
-        "date_found": "2026-04-18",
-        "listing_url": "https://example.com/jobs/4",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_04"),
-        "description": [
-            "Own the roadmap for a cross-cutting internal platform used by frontline staff.",
-            "You will set priorities, work with designers and engineers, and measure impact against clear outcomes.",
-        ],
-    },
-    {
-        "id": 5,
-        "title": "Interaction Designer",
-        "employer": "DVLA",
-        "location": "Swansea",
-        "cluster": "ux_design",
-        "status": "approved",
-        "closing_date": "2026-05-05",
-        "date_found": "2026-04-17",
-        "listing_url": "https://example.com/jobs/5",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_05"),
-        "description": [
-            "Design interactions for high-volume transactional services used by millions of citizens every year.",
-            "The role balances accessibility, simplicity, and regulatory constraints.",
-        ],
-    },
-    {
-        "id": 6,
-        "title": "Clinical Systems Designer",
-        "employer": "NHS England",
-        "location": "Remote",
-        "cluster": "nhs_healthcare",
-        "status": "to_review",
-        "closing_date": "2026-05-12",
-        "date_found": "2026-04-17",
-        "listing_url": "https://example.com/jobs/6",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_06"),
-        "description": [
-            "Work with clinicians to design systems that support safe, efficient care delivery.",
-            "You will translate complex clinical workflows into usable digital tools.",
-        ],
-    },
-    {
-        "id": 7,
-        "title": "Head of User Research",
-        "employer": "Ministry of Justice",
-        "location": "London",
-        "cluster": "user_research",
-        "status": "rendered",
-        "closing_date": "2026-04-30",
-        "date_found": "2026-04-16",
-        "listing_url": "https://example.com/jobs/7",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_07"),
-        "description": [
-            "Lead a multidisciplinary research function across several service areas.",
-            "You will grow the team, set research strategy, and advocate for user needs at senior levels.",
-        ],
-    },
-    {
-        "id": 8,
-        "title": "Design System Lead",
-        "employer": "GDS",
-        "location": "London",
-        "cluster": "design_systems",
-        "status": "approved",
-        "closing_date": "2026-05-08",
-        "date_found": "2026-04-16",
-        "listing_url": "https://example.com/jobs/8",
-        "output_folder": str(SAMPLE_OUTPUTS_ROOT / "job_08"),
-        "description": [
-            "Lead the direction of a cross-government design system used by hundreds of service teams.",
-            "You will set standards, support contributors, and ensure patterns meet accessibility guidelines.",
-        ],
-    },
-]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _seed_sample_output(job: dict) -> None:
-    """Write a stub cv_tailored.json for a sample job if none exists.
+def _resolved_output_folder(output_folder: str | None) -> Path | None:
+    if not output_folder or not str(output_folder).strip():
+        return None
+    p = Path(output_folder.strip())
+    if not p.is_absolute():
+        p = REPO_ROOT / p
+    return p
 
-    Sample data only: replicates the v1 pipeline's output folder layout so the
-    save/reset flow has something real to read and write. Never overwrites an
-    existing file, so edited or customised fixtures survive server restarts.
-    """
-    folder = Path(job["output_folder"])
+
+def _output_folder_usable(output_folder: str) -> bool:
+    p = _resolved_output_folder(output_folder)
+    return p is not None and p.is_dir()
+
+
+def _output_path_str(output_folder: str) -> str:
+    p = _resolved_output_folder(output_folder)
+    return str(p) if p else ""
+
+
+def _has_usable_tailored_cv(output_folder: str) -> bool:
+    if not _output_folder_usable(output_folder):
+        return False
+    folder = _resolved_output_folder(output_folder)
+    if folder is None:
+        return False
     original = folder / tailored_cv.ORIGINAL_NAME
-    if original.is_file():
-        return
-
-    stub = {
-        "NAME": "Alex Jordan",
-        "OBJECTIVE": (
-            f"Experienced practitioner applying for the {job['title']} role at "
-            f"{job['employer']}. Brings a track record of shipping accessible, "
-            "user-centred services in regulated environments."
-        ),
-        "EXP_1_ROLE": "Lead Practitioner",
-        "EXP_1_COMPANY": "Previous Employer",
-        "EXP_1_DATE": "Jan 2022 - Present",
-        "EXP_1_BODY": (
-            "Led cross-functional work on several public-facing services, "
-            "partnering with researchers, engineers, and delivery managers."
-        ),
-        "CLUSTER": job["cluster"],
-        "JOB_TITLE": job["title"],
-        "EMPLOYER": job["employer"],
-    }
-
-    folder.mkdir(parents=True, exist_ok=True)
-    original.write_text(
-        json.dumps(stub, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    return original.is_file() or tailored_cv.has_edit(folder)
 
 
-def _seed_template_choice(job: dict) -> None:
-    folder = Path(job["output_folder"])
-    choice_file = folder / cv_template_choice.CHOICE_NAME
-    if choice_file.is_file():
-        return
-    folder.mkdir(parents=True, exist_ok=True)
-    choice_file.write_text(
-        json.dumps({"template": "a"}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-
-def _ensure_sample_outputs() -> None:
-    for job in JOBS:
-        _seed_sample_output(job)
-        _seed_template_choice(job)
-
-
-_ensure_sample_outputs()
-
-
-def _get_job(job_id: int) -> dict:
-    job = next((j for j in JOBS if j["id"] == job_id), None)
+def _get_job(row: int) -> dict:
+    job = sheets.get_job_by_row(row)
     if job is None:
         abort(404)
     return job
 
 
-def _filter_jobs(status):
-    if not status or status == "all":
-        return JOBS
-    return [j for j in JOBS if j["status"] == status]
+def _filter_jobs(status: str):
+    return sheets.get_jobs(status if status != "all" else None)
 
 
 def _render_detail(job: dict):
-    data, is_edited = tailored_cv.read_preferred(job["output_folder"])
-    cv_json_text = json.dumps(data, indent=2, ensure_ascii=False)
+    folder_usable = _output_folder_usable(job["output_folder"])
+    show_cv_editor = _has_usable_tailored_cv(job["output_folder"])
+    path_str = _output_path_str(job["output_folder"])
+
+    data: dict = {}
+    is_edited = False
+    cv_json_text = ""
+    preview_html = ""
+
+    if show_cv_editor:
+        data, is_edited = tailored_cv.read_preferred(path_str)
+        cv_json_text = json.dumps(data, indent=2, ensure_ascii=False)
+        selected_template = cv_template_choice.get_choice(path_str)
+        preview_html = preview.render_preview_html(
+            path_str,
+            data=data,
+            job_id=job["row"],
+            template_choice=selected_template,
+        )
+    else:
+        selected_template = (
+            cv_template_choice.get_choice(path_str)
+            if folder_usable
+            else "a"
+        )
+
     templates = ["a", "b", "c"]
-    selected_template = cv_template_choice.get_choice(job["output_folder"])
-    preview_html = preview.render_preview_html(
-        job["output_folder"],
-        data=data,
-        job_id=job["id"],
-        template_choice=selected_template,
-    )
     return render_template(
         "jobs/_detail.html",
         job=job,
@@ -235,6 +86,8 @@ def _render_detail(job: dict):
         cv_json_text=cv_json_text,
         is_edited=is_edited,
         preview_html=preview_html,
+        folder_usable=folder_usable,
+        show_cv_editor=show_cv_editor,
     )
 
 
@@ -242,14 +95,19 @@ def _render_detail(job: dict):
 def index():
     status = request.args.get("status", "all")
     search = request.args.get("q", "").strip().lower()
+    sheet_configured = sheets.is_configured()
     rows = _filter_jobs(status)
     if search:
-        rows = [j for j in rows if search in j["title"].lower() or search in j["employer"].lower()]
+        rows = [
+            j
+            for j in rows
+            if search in j["title"].lower() or search in j["employer"].lower()
+        ]
     statuses = [
         ("all", "All statuses"),
         ("to_review", "To review"),
         ("approved", "Approved"),
-        ("rendered", "Rendered"),
+        ("pdf_ready", "PDF Ready"),
     ]
     return render_template(
         "jobs/index.html",
@@ -258,17 +116,43 @@ def index():
         selected_status=status,
         search=search,
         statuses=statuses,
+        sheet_configured=sheet_configured,
     )
 
 
-@bp.route("/<int:job_id>")
-def detail(job_id):
-    return _render_detail(_get_job(job_id))
+@bp.route("/<int:row>")
+def detail(row):
+    return _render_detail(_get_job(row))
 
 
-@bp.route("/<int:job_id>/cv-edit", methods=["POST"])
-def cv_edit(job_id):
-    job = _get_job(job_id)
+@bp.route("/<int:row>/approve", methods=["POST"])
+def approve(row):
+    job = sheets.get_job_by_row(row)
+    if job is None:
+        abort(404)
+    ok = sheets.approve_job(row)
+    if not ok:
+        return render_template(
+            "jobs/_action_row.html",
+            job=job,
+            approve_error="Could not update the Sheet. Check credentials and try again.",
+        )
+    updated = sheets.get_job_by_row(row)
+    if updated is None:
+        updated = {**job, "status": "approved"}
+    return render_template("jobs/_action_row.html", job=updated, approve_error=None)
+
+
+@bp.route("/<int:row>/cv-edit", methods=["POST"])
+def cv_edit(row):
+    job = _get_job(row)
+    if not _output_folder_usable(job["output_folder"]):
+        return render_template(
+            "jobs/_cv_save_feedback.html",
+            job=job,
+            success=False,
+            error="Output folder is missing. Cannot save edits.",
+        )
     json_text = request.form.get("json_text", "")
     try:
         data = json.loads(json_text)
@@ -280,7 +164,8 @@ def cv_edit(job_id):
             error=str(exc),
         )
 
-    tailored_cv.save_edit(job["output_folder"], data)
+    path_str = _output_path_str(job["output_folder"])
+    tailored_cv.save_edit(path_str, data)
     return render_template(
         "jobs/_cv_save_feedback.html",
         job=job,
@@ -288,24 +173,24 @@ def cv_edit(job_id):
     )
 
 
-@bp.route("/<int:job_id>/cv-edit/reset", methods=["POST"])
-def cv_edit_reset(job_id):
-    job = _get_job(job_id)
-    tailored_cv.reset_edit(job["output_folder"])
+@bp.route("/<int:row>/cv-edit/reset", methods=["POST"])
+def cv_edit_reset(row):
+    job = _get_job(row)
+    tailored_cv.reset_edit(_output_path_str(job["output_folder"]))
     return _render_detail(job)
 
 
-@bp.route("/<int:job_id>/preview/content", methods=["GET", "POST"])
-def preview_content(job_id):
-    """Return a complete HTML document for the preview iframe.
-
-    GET: renders the preferred on-disk JSON. Used for the initial srcdoc.
-    POST: renders the ``json_text`` form field (the current textarea contents)
-    so the preview stays in sync with unsaved edits. Falls back to disk state
-    on parse error so a half-typed edit never blanks the preview.
-    """
-    job = _get_job(job_id)
-    selected_template = cv_template_choice.get_choice(job["output_folder"])
+@bp.route("/<int:row>/preview/content", methods=["GET", "POST"])
+def preview_content(row):
+    """Return a complete HTML document for the preview iframe."""
+    job = _get_job(row)
+    path_str = _output_path_str(job["output_folder"])
+    if not path_str or not _output_folder_usable(job["output_folder"]):
+        return Response(
+            "<!DOCTYPE html><html><body><p class=\"text-muted small\">No preview available.</p></body></html>",
+            mimetype="text/html",
+        )
+    selected_template = cv_template_choice.get_choice(path_str)
 
     data = None
     if request.method == "POST":
@@ -316,21 +201,22 @@ def preview_content(job_id):
             data = None
 
     html = preview.render_preview_html(
-        job["output_folder"],
+        path_str,
         data=data,
-        job_id=job["id"],
+        job_id=job["row"],
         template_choice=selected_template,
     )
     return Response(html, mimetype="text/html")
 
 
-@bp.route("/<int:job_id>/template", methods=["POST"])
-def set_template(job_id):
-    """Persist the A/B/C choice. Preview refresh happens client-side."""
-    job = _get_job(job_id)
+@bp.route("/<int:row>/template", methods=["POST"])
+def set_template(row):
+    job = _get_job(row)
+    if not _output_folder_usable(job["output_folder"]):
+        return jsonify({"ok": False, "error": "no output folder"}), 400
     choice = (request.form.get("template") or "").lower()
     try:
-        saved = cv_template_choice.set_choice(job["output_folder"], choice)
+        saved = cv_template_choice.set_choice(_output_path_str(job["output_folder"]), choice)
     except ValueError:
         return jsonify({"ok": False, "error": "invalid template"}), 400
     return jsonify({"ok": True, "template": saved})

@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template
 
+from ui.services import sheets
+
 bp = Blueprint("dashboard", __name__)
 
 
@@ -10,10 +12,11 @@ def index():
         "label": "Pipeline idle",
         "detail": "Last run completed 2 hours ago",
     }
+    counters_data = sheets.get_counters()
     counters = [
-        {"value": 12, "label": "Awaiting review"},
-        {"value": 5, "label": "Approved, unrendered"},
-        {"value": 3, "label": "Rendered today"},
+        {"value": counters_data["to_review"], "label": "Awaiting review"},
+        {"value": counters_data["approved"], "label": "Approved, unrendered"},
+        {"value": counters_data["pdf_ready"], "label": "Rendered"},
     ]
     activity = [
         {"action": "Pipeline run completed", "detail": "18 jobs scraped, 12 matched", "time": "2 hours ago"},
