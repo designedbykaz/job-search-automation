@@ -1,4 +1,4 @@
-<div id="job-detail" class="jobs-detail" data-job-id="{{ job.id }}">
+<div id="job-detail" class="jobs-detail" data-job-id="{{ job.row }}">
   <div class="p-4 border-bottom d-flex align-items-start justify-content-between">
     <div class="flex-grow-1">
       <h2 class="h5 mb-1">{{ job.title }}</h2>
@@ -24,18 +24,22 @@
     <section class="mb-4">
       <h3 class="section-title">Job description</h3>
       <div class="border rounded p-3 small text-muted" style="max-height: 12rem; overflow-y: auto;">
-        {% for para in job.description %}
-          <p class="mb-2">{{ para }}</p>
-        {% endfor %}
+        {% if job.description %}
+          {% for para in job.description %}
+            <p class="mb-2">{{ para }}</p>
+          {% endfor %}
+        {% else %}
+          <p class="mb-0 text-secondary">No job description stored in the Sheet.</p>
+        {% endif %}
       </div>
     </section>
 
     <section class="mb-4">
       <div class="d-flex align-items-center mb-2">
         <h3 class="section-title mb-0 me-2">Tailored CV</h3>
-        <span id="cv-edited-badge-{{ job.id }}">
-          {% if is_edited %}
-            <span id="cv-edited-badge-{{ job.id }}" class="badge text-bg-secondary ms-2">edited</span>
+        <span id="cv-edited-badge-{{ job.row }}">
+          {% if show_cv_editor and is_edited %}
+            <span id="cv-edited-badge-{{ job.row }}" class="badge text-bg-secondary ms-2">edited</span>
           {% endif %}
         </span>
         <div class="cv-actions ms-auto d-flex gap-1">
@@ -43,20 +47,21 @@
                   class="btn btn-sm btn-outline-secondary"
                   title="Save (Ctrl+S)"
                   aria-label="Save edits"
-                  data-cv-save-for="cv-json-textarea-{{ job.id }}"
-                  hx-post="{{ url_for('jobs.cv_edit', job_id=job.id) }}"
-                  hx-include="#cv-json-textarea-{{ job.id }}"
-                  hx-target="#cv-feedback-{{ job.id }}"
-                  hx-swap="innerHTML">
+                  data-cv-save-for="cv-json-textarea-{{ job.row }}"
+                  hx-post="{{ url_for('jobs.cv_edit', row=job.row) }}"
+                  hx-include="#cv-json-textarea-{{ job.row }}"
+                  hx-target="#cv-feedback-{{ job.row }}"
+                  hx-swap="innerHTML"
+                  {% if not show_cv_editor %}disabled{% endif %}>
             <i class="bi bi-floppy"></i>
           </button>
-          <span id="cv-reset-wrapper-{{ job.id }}">
+          <span id="cv-reset-wrapper-{{ job.row }}">
             <button type="button"
                     class="btn btn-sm btn-outline-secondary js-reset-cv"
                     title="Reset to original"
                     aria-label="Reset to original"
-                    data-reset-url="{{ url_for('jobs.cv_edit_reset', job_id=job.id) }}"
-                    {% if not is_edited %}disabled{% endif %}>
+                    data-reset-url="{{ url_for('jobs.cv_edit_reset', row=job.row) }}"
+                    {% if not show_cv_editor or not is_edited %}disabled{% endif %}>
               <i class="bi bi-arrow-counterclockwise"></i>
             </button>
           </span>
@@ -66,15 +71,15 @@
       <div class="border rounded">
         <ul class="nav nav-tabs border-bottom-0" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cv-json-{{ job.id }}" type="button">JSON</button>
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cv-json-{{ job.row }}" type="button">JSON</button>
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-link d-inline-flex align-items-center gap-2"
                     data-bs-toggle="tab"
-                    data-bs-target="#cv-preview-{{ job.id }}"
+                    data-bs-target="#cv-preview-{{ job.row }}"
                     type="button">
               Preview
-              <span id="cv-overflow-badge-{{ job.id }}"
+              <span id="cv-overflow-badge-{{ job.row }}"
                     class="cv-overflow-badge badge text-bg-warning d-none"
                     title="Rendered content exceeds one A4 page">
                 <i class="bi bi-exclamation-triangle me-1"></i>Overflowing page
@@ -83,32 +88,47 @@
           </li>
         </ul>
         <div class="tab-content">
-          <div class="tab-pane fade show active p-3 bg-light" id="cv-json-{{ job.id }}">
-            <textarea id="cv-json-textarea-{{ job.id }}"
-                      name="json_text"
-                      class="form-control font-monospace small cv-json-editor"
-                      rows="14"
-                      spellcheck="false"
-                      data-cv-textarea
-                      data-preview-url="{{ url_for('jobs.preview_content', job_id=job.id) }}">{{ cv_json_text }}</textarea>
-            <div id="cv-feedback-{{ job.id }}" class="cv-feedback small mt-2" aria-live="polite"></div>
-          </div>
-          <div class="tab-pane fade p-0" id="cv-preview-{{ job.id }}">
-            {% include "jobs/_preview.html" %}
-          </div>
+          {% if show_cv_editor %}
+            <div class="tab-pane fade show active p-3 bg-light" id="cv-json-{{ job.row }}">
+              <textarea id="cv-json-textarea-{{ job.row }}"
+                        name="json_text"
+                        class="form-control font-monospace small cv-json-editor"
+                        rows="14"
+                        spellcheck="false"
+                        data-cv-textarea
+                        data-preview-url="{{ url_for('jobs.preview_content', row=job.row) }}">{{ cv_json_text }}</textarea>
+              <div id="cv-feedback-{{ job.row }}" class="cv-feedback small mt-2" aria-live="polite"></div>
+            </div>
+            <div class="tab-pane fade p-0" id="cv-preview-{{ job.row }}">
+              {% include "jobs/_preview.html" %}
+            </div>
+          {% else %}
+            <div class="tab-pane fade show active p-3 bg-light" id="cv-json-{{ job.row }}">
+              <div class="text-secondary small p-3 mb-0">
+                No tailored CV yet. This job has not been through the tailoring step.
+              </div>
+              <div id="cv-feedback-{{ job.row }}" class="cv-feedback small mt-2" aria-live="polite"></div>
+            </div>
+            <div class="tab-pane fade p-3" id="cv-preview-{{ job.row }}">
+              <div class="text-secondary small p-3 mb-0">
+                No tailored CV yet. This job has not been through the tailoring step.
+              </div>
+            </div>
+          {% endif %}
         </div>
       </div>
     </section>
 
     <section>
       <h3 class="section-title">Template</h3>
-      <div id="cv-template-buttons-{{ job.id }}" class="d-flex gap-2">
+      <div id="cv-template-buttons-{{ job.row }}" class="d-flex gap-2">
         {% for t in templates %}
           <button type="button"
                   class="btn flex-grow-1 js-template-choice {% if t == selected_template %}btn-dark{% else %}btn-outline-secondary{% endif %}"
                   data-template-choice="{{ t }}"
-                  data-template-url="{{ url_for('jobs.set_template', job_id=job.id) }}"
-                  aria-pressed="{{ 'true' if t == selected_template else 'false' }}">
+                  data-template-url="{{ url_for('jobs.set_template', row=job.row) }}"
+                  aria-pressed="{{ 'true' if t == selected_template else 'false' }}"
+                  {% if not folder_usable %}disabled{% endif %}>
             Template {{ t | upper }}
           </button>
         {% endfor %}
@@ -116,22 +136,5 @@
     </section>
   </div>
 
-  <div class="p-4 border-top d-flex gap-2">
-    {% if job.status == 'to_review' %}
-      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
-        <i class="bi bi-check-lg"></i> Approve
-      </button>
-      <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled>
-        <i class="bi bi-archive"></i> Archive
-      </button>
-    {% elif job.status == 'approved' %}
-      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
-        <i class="bi bi-file-earmark-arrow-down"></i> Render PDF
-      </button>
-    {% elif job.status == 'rendered' %}
-      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
-        <i class="bi bi-file-earmark-arrow-down"></i> Download PDF
-      </button>
-    {% endif %}
-  </div>
+  {% include "jobs/_action_row.html" %}
 </div>

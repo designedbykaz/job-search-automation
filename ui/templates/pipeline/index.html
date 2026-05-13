@@ -33,7 +33,7 @@
                 <label class="form-check d-flex align-items-center justify-content-between p-3 border rounded m-0">
                   <span class="d-flex align-items-center gap-2">
                     <input class="form-check-input m-0" type="checkbox"
-                           name="scraper_{{ s.id }}" {% if s.enabled %}checked{% endif %}>
+                           name="scraper_{{ loop.index }}" {% if s.enabled %}checked{% endif %}>
                     <span>{{ s.name }}</span>
                   </span>
                   {% if s.status == 'healthy' %}
@@ -62,7 +62,7 @@
                 <div class="col-md-6">
                   <label class="form-check d-flex align-items-center gap-2 p-3 border rounded m-0">
                     <input class="form-check-input m-0" type="checkbox"
-                           name="cluster_{{ c.id }}" {% if c.enabled %}checked{% endif %}>
+                           name="cluster_{{ loop.index }}" {% if c.enabled %}checked{% endif %}>
                     <span class="flex-grow-1">
                       <span class="d-block">{{ c.name }}</span>
                       <span class="d-block text-muted small">{{ c.keywords }} keywords</span>

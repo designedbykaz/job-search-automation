@@ -1,6 +1,7 @@
 {% set map = {
   "to_review": ("To review", "status-badge status-badge--review"),
   "approved":  ("Approved",  "status-badge status-badge--approved"),
+  "pdf_ready": ("PDF Ready", "status-badge status-badge--rendered"),
   "rendered":  ("Rendered",  "status-badge status-badge--rendered"),
 } %}
 {% set label, cls = map.get(status, (status, "status-badge")) %}

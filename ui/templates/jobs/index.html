@@ -33,7 +33,7 @@
         </thead>
         <tbody id="jobs-tbody">
           {% for job in jobs %}
-            <tr hx-get="{{ url_for('jobs.detail', job_id=job.id) }}"
+            <tr hx-get="{{ url_for('jobs.detail', row=job.row) }}"
                 hx-target="#job-detail"
                 hx-swap="outerHTML"
                 hx-on:click="document.querySelectorAll('#jobs-tbody tr.is-selected').forEach(el => el.classList.remove('is-selected')); this.classList.add('is-selected');">
@@ -46,7 +46,17 @@
             </tr>
           {% endfor %}
           {% if not jobs %}
-            <tr><td colspan="6" class="text-center text-muted py-5">No jobs match these filters.</td></tr>
+            <tr>
+              <td colspan="6" class="text-center text-muted py-5">
+                {% if not sheet_configured %}
+                  No jobs yet. Configure Google Sheets in Settings or run a scrape.
+                {% elif selected_status != 'all' or search %}
+                  No jobs match these filters.
+                {% else %}
+                  No jobs yet. Run a scrape to add rows to your Sheet.
+                {% endif %}
+              </td>
+            </tr>
           {% endif %}
         </tbody>
       </table>

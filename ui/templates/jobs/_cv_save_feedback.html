@@ -2,16 +2,16 @@
 <span class="cv-feedback-message text-success">
   <i class="bi bi-check-circle me-1"></i>Saved
 </span>
-<span id="cv-edited-badge-{{ job.id }}" hx-swap-oob="outerHTML">
-  <span id="cv-edited-badge-{{ job.id }}" class="badge text-bg-secondary ms-2">edited</span>
+<span id="cv-edited-badge-{{ job.row }}" hx-swap-oob="outerHTML">
+  <span id="cv-edited-badge-{{ job.row }}" class="badge text-bg-secondary ms-2">edited</span>
 </span>
-<span id="cv-reset-wrapper-{{ job.id }}" hx-swap-oob="outerHTML">
-  <span id="cv-reset-wrapper-{{ job.id }}">
+<span id="cv-reset-wrapper-{{ job.row }}" hx-swap-oob="outerHTML">
+  <span id="cv-reset-wrapper-{{ job.row }}">
     <button type="button"
             class="btn btn-sm btn-outline-secondary js-reset-cv"
             title="Reset to original"
             aria-label="Reset to original"
-            data-reset-url="{{ url_for('jobs.cv_edit_reset', job_id=job.id) }}">
+            data-reset-url="{{ url_for('jobs.cv_edit_reset', row=job.row) }}">
       <i class="bi bi-arrow-counterclockwise"></i>
     </button>
   </span>
