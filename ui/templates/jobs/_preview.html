@@ -3,6 +3,6 @@
           class="cv-preview-iframe"
           title="CV preview"
           sandbox="allow-scripts"
-          data-preview-url="{{ url_for('jobs.preview_content', row=job.row) }}"
+          data-preview-url="{{ url_for('jobs.preview_content', row=job.row, output_folder=job.output_folder or '') }}"
           srcdoc="{{ preview_html }}"></iframe>
 </div>

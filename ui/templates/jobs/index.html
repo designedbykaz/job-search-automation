@@ -2,7 +2,7 @@
 {% block title %}Jobs{% endblock %}
 
 {% block content %}
-<div class="jobs-layout">
+<div class="jobs-layout" data-jobs-index-url="{{ url_for('jobs.index') }}">
   <div class="jobs-list">
     <div class="p-4 border-bottom bg-white">
       <h1 class="page-title mb-3">Jobs</h1>
@@ -33,10 +33,8 @@
         </thead>
         <tbody id="jobs-tbody">
           {% for job in jobs %}
-            <tr hx-get="{{ url_for('jobs.detail', row=job.row) }}"
-                hx-target="#job-detail"
-                hx-swap="outerHTML"
-                hx-on:click="document.querySelectorAll('#jobs-tbody tr.is-selected').forEach(el => el.classList.remove('is-selected')); this.classList.add('is-selected');">
+            <tr class="job-row"
+                data-job-json='{{ {"row": job.row, "title": job.title, "employer": job.employer, "location": job.location, "listing_url": job.listing_url, "description": job.description, "status": job.status, "output_folder": job.output_folder or ""} | tojson }}'>
               <td class="px-4">{% with status=job.status %}{% include "partials/_status_badge.html" %}{% endwith %}</td>
               <td class="text-body">{{ job.title }}</td>
               <td class="text-muted">{{ job.employer }}</td>

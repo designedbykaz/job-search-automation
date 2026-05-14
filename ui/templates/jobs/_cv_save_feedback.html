@@ -11,7 +11,8 @@
             class="btn btn-sm btn-outline-secondary js-reset-cv"
             title="Reset to original"
             aria-label="Reset to original"
-            data-reset-url="{{ url_for('jobs.cv_edit_reset', row=job.row) }}">
+            data-reset-url="{{ url_for('jobs.cv_edit_reset', row=job.row) }}"
+            data-output-folder="{{ job.output_folder }}">
       <i class="bi bi-arrow-counterclockwise"></i>
     </button>
   </span>

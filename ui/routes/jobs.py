@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from flask import Blueprint, Response, abort, jsonify, render_template, request
+from flask import Blueprint, Response, abort, jsonify, redirect, render_template, request, url_for
 
 from ui.services import cv_template_choice, preview, sheets, tailored_cv
 
@@ -46,14 +46,23 @@ def _get_job(row: int) -> dict:
     return job
 
 
+def _job_from_request_for_row(row: int) -> dict:
+    """Prefer output_folder from the request when it resolves to a usable folder (no Sheets read)."""
+    out = (request.values.get("output_folder") or "").strip()
+    if out and _output_folder_usable(out):
+        return {"row": row, "output_folder": out}
+    return _get_job(row)
+
+
 def _filter_jobs(status: str):
     return sheets.get_jobs(status if status != "all" else None)
 
 
-def _render_detail(job: dict):
-    folder_usable = _output_folder_usable(job["output_folder"])
-    show_cv_editor = _has_usable_tailored_cv(job["output_folder"])
-    path_str = _output_path_str(job["output_folder"])
+def _cv_detail_context(job: dict) -> dict:
+    out = (job.get("output_folder") or "").strip()
+    folder_usable = _output_folder_usable(out)
+    show_cv_editor = _has_usable_tailored_cv(out)
+    path_str = _output_path_str(out)
 
     data: dict = {}
     is_edited = False
@@ -78,16 +87,23 @@ def _render_detail(job: dict):
         )
 
     templates = ["a", "b", "c"]
+    return {
+        "templates": templates,
+        "selected_template": selected_template,
+        "cv_json_text": cv_json_text,
+        "is_edited": is_edited,
+        "preview_html": preview_html,
+        "folder_usable": folder_usable,
+        "show_cv_editor": show_cv_editor,
+    }
+
+
+def _render_detail(job: dict):
+    ctx = _cv_detail_context(job)
     return render_template(
         "jobs/_detail.html",
         job=job,
-        templates=templates,
-        selected_template=selected_template,
-        cv_json_text=cv_json_text,
-        is_edited=is_edited,
-        preview_html=preview_html,
-        folder_usable=folder_usable,
-        show_cv_editor=show_cv_editor,
+        **ctx,
     )
 
 
@@ -122,7 +138,18 @@ def index():
 
 @bp.route("/<int:row>")
 def detail(row):
-    return _render_detail(_get_job(row))
+    return redirect(url_for("jobs.index"), code=302)
+
+
+@bp.route("/<int:row>/cv-sections", methods=["GET"])
+def cv_sections(row):
+    """Disk-only CV + template markup for the job detail pane (no Google Sheets read)."""
+    if row < 2:
+        abort(404)
+    output_folder = (request.args.get("output_folder") or "").strip()
+    job = {"row": row, "output_folder": output_folder}
+    ctx = _cv_detail_context(job)
+    return render_template("jobs/_detail_cv_sections.html", job=job, **ctx)
 
 
 @bp.route("/<int:row>/approve", methods=["POST"])
@@ -145,7 +172,7 @@ def approve(row):
 
 @bp.route("/<int:row>/cv-edit", methods=["POST"])
 def cv_edit(row):
-    job = _get_job(row)
+    job = _job_from_request_for_row(row)
     if not _output_folder_usable(job["output_folder"]):
         return render_template(
             "jobs/_cv_save_feedback.html",
@@ -183,13 +210,18 @@ def cv_edit_reset(row):
 @bp.route("/<int:row>/preview/content", methods=["GET", "POST"])
 def preview_content(row):
     """Return a complete HTML document for the preview iframe."""
-    job = _get_job(row)
-    path_str = _output_path_str(job["output_folder"])
-    if not path_str or not _output_folder_usable(job["output_folder"]):
-        return Response(
-            "<!DOCTYPE html><html><body><p class=\"text-muted small\">No preview available.</p></body></html>",
-            mimetype="text/html",
-        )
+    out = (request.values.get("output_folder") or "").strip()
+    if out and _output_folder_usable(out):
+        path_str = _output_path_str(out)
+    else:
+        job = _get_job(row)
+        path_str = _output_path_str(job["output_folder"])
+        if not path_str or not _output_folder_usable(job["output_folder"]):
+            return Response(
+                '<!DOCTYPE html><html><body><p class="text-muted small">No preview available.</p></body></html>',
+                mimetype="text/html",
+            )
+
     selected_template = cv_template_choice.get_choice(path_str)
 
     data = None
@@ -203,7 +235,7 @@ def preview_content(row):
     html = preview.render_preview_html(
         path_str,
         data=data,
-        job_id=job["row"],
+        job_id=row,
         template_choice=selected_template,
     )
     return Response(html, mimetype="text/html")
@@ -211,7 +243,7 @@ def preview_content(row):
 
 @bp.route("/<int:row>/template", methods=["POST"])
 def set_template(row):
-    job = _get_job(row)
+    job = _job_from_request_for_row(row)
     if not _output_folder_usable(job["output_folder"]):
         return jsonify({"ok": False, "error": "no output folder"}), 400
     choice = (request.form.get("template") or "").lower()
