@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pipeline.dedup import deduplicate
+from pipeline.dedup import create_output_folders, deduplicate
 from pipeline.logger import log_jobs
 from scrapers.govuk import scrape_govuk_jobs
 
@@ -43,6 +43,14 @@ def run_open_search(terms: list[str], location: str) -> tuple[bool, str | None, 
     found = len(unique_jobs)
     for job in unique_jobs:
         job["cluster"] = "open_search"
+
+    try:
+        unique_jobs = create_output_folders(unique_jobs)
+    except Exception as exc:
+        logger.warning(
+            "Open search: failed to create output folders, jobs will not appear in the UI until next full pipeline run: %s",
+            exc,
+        )
 
     log_jobs(unique_jobs)
 
