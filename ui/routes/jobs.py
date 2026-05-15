@@ -42,8 +42,8 @@ def _has_usable_tailored_cv(output_folder: str) -> bool:
 def _normalize_job(job: dict) -> dict:
     """Index entries use sheet_row; templates expect row, description list."""
     out = dict(job)
-    if "row" not in out and out.get("sheet_row") is not None:
-        out["row"] = out["sheet_row"]
+    if "row" not in out:
+        out["row"] = out.get("sheet_row")
     if "description" not in out or out.get("description") is None:
         out["description"] = []
     return out

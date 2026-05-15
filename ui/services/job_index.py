@@ -158,6 +158,20 @@ def get_job_by_row(sheet_row: int) -> dict | None:
     return None
 
 
+def get_counters() -> dict[str, int]:
+    """Return counts of jobs in the index grouped by status.
+
+    Returns a dict with keys 'to_review', 'approved', and 'pdf_ready'.
+    Jobs with other statuses (for example 'archived') are not counted.
+    """
+    counters = {"to_review": 0, "approved": 0, "pdf_ready": 0}
+    for job in list_jobs():
+        status = job.get("status", "to_review")
+        if status in counters:
+            counters[status] += 1
+    return counters
+
+
 def set_status(slug: str, new_status: str) -> bool:
     """Update a job's status in the index file.
 

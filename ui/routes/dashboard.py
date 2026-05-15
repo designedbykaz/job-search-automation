@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 
-from ui.services import sheets
+from ui.services import job_index
 
 bp = Blueprint("dashboard", __name__)
 
@@ -12,7 +12,7 @@ def index():
         "label": "Pipeline idle",
         "detail": "Last run completed 2 hours ago",
     }
-    counters_data = sheets.get_counters()
+    counters_data = job_index.get_counters()
     counters = [
         {"value": counters_data["to_review"], "label": "Awaiting review"},
         {"value": counters_data["approved"], "label": "Approved, unrendered"},

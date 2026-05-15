@@ -281,3 +281,23 @@ def test_atomic_write_does_not_corrupt_on_partial_failure(index_env, monkeypatch
         job_index.set_status("a", "approved")
     after = (index_env / "outputs" / "_index.json").read_text(encoding="utf-8")
     assert before == after
+
+
+def test_get_counters_returns_zero_when_empty(index_env):
+    write_index(index_env, [])
+    assert job_index.get_counters() == {"to_review": 0, "approved": 0, "pdf_ready": 0}
+
+
+def test_get_counters_tallies_by_status(index_env):
+    write_index(
+        index_env,
+        [
+            {"slug": "a", "status": "to_review"},
+            {"slug": "b", "status": "to_review"},
+            {"slug": "c", "status": "approved"},
+            {"slug": "d", "status": "pdf_ready"},
+            {"slug": "e", "status": "archived"},
+        ],
+    )
+    counters = job_index.get_counters()
+    assert counters == {"to_review": 2, "approved": 1, "pdf_ready": 1}
