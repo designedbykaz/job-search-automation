@@ -3,7 +3,14 @@ from pathlib import Path
 
 from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
 
-from ui.services import cv_template_choice, job_index, preview, sheets, tailored_cv
+from ui.services import (
+    activity_log,
+    cv_template_choice,
+    job_index,
+    preview,
+    sheets,
+    tailored_cv,
+)
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
 
@@ -183,6 +190,13 @@ def approve(row):
             "sheet will need a manual sync later.",
             row,
         )
+    activity_log.record_status_change(
+        slug=job["slug"],
+        title=job.get("title", ""),
+        employer=job.get("employer", ""),
+        from_status=job.get("status", "to_review"),
+        to_status="approved",
+    )
     raw_updated = job_index.get_job_by_row(row)
     updated = _normalize_job(raw_updated or {**job, "status": "approved"})
     return render_template("jobs/_action_row.html", job=updated, approve_error=None)

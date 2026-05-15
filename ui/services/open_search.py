@@ -9,7 +9,7 @@ from pipeline.dedup import create_output_folders, deduplicate
 from pipeline.logger import log_jobs
 from scrapers.govuk import scrape_govuk_jobs
 
-from ui.services import job_index
+from ui.services import activity_log, job_index
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,14 @@ def run_open_search(terms: list[str], location: str) -> tuple[bool, str | None, 
         job_index.sync_from_sheet()
     except Exception as exc:
         logger.warning("Open search succeeded but index update failed: %s", exc)
+
+    if found > 0:
+        activity_log.record_scrape(
+            source="open_search",
+            terms=valid_terms,
+            location=loc,
+            jobs_added=found,
+        )
 
     summary: dict[str, Any] = {
         "found": found,
