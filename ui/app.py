@@ -3,6 +3,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask
 
+from ui.services import job_index
+
 
 def create_app():
     load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -18,5 +20,12 @@ def create_app():
     app.register_blueprint(prompts.bp)
     app.register_blueprint(cv_templates.bp)
     app.register_blueprint(settings.bp)
+
+    @app.context_processor
+    def inject_topbar_counters():
+        try:
+            return {"topbar_counters": job_index.get_counters()}
+        except Exception:
+            return {"topbar_counters": {"to_review": 0, "approved": 0, "pdf_ready": 0}}
 
     return app

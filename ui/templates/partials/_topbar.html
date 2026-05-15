@@ -6,12 +6,12 @@
     </div>
     <div class="app-topbar-divider"></div>
     <a href="{{ url_for('jobs.index', status='to_review') }}" class="app-topbar-stat">
-      <span class="fw-semibold text-body">12</span>
+      <span class="fw-semibold text-body">{{ topbar_counters.to_review }}</span>
       <span class="text-muted">to review</span>
     </a>
     <div class="app-topbar-divider"></div>
     <a href="{{ url_for('jobs.index', status='approved') }}" class="app-topbar-stat">
-      <span class="fw-semibold text-body">5</span>
+      <span class="fw-semibold text-body">{{ topbar_counters.approved }}</span>
       <span class="text-muted">approved</span>
     </a>
   </div>
