@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 
-from flask import Blueprint, Response, abort, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
 
-from ui.services import cv_template_choice, preview, sheets, tailored_cv
+from ui.services import cv_template_choice, job_index, preview, sheets, tailored_cv
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
 
@@ -39,23 +39,29 @@ def _has_usable_tailored_cv(output_folder: str) -> bool:
     return original.is_file() or tailored_cv.has_edit(folder)
 
 
+def _normalize_job(job: dict) -> dict:
+    """Index entries use sheet_row; templates expect row, description list."""
+    out = dict(job)
+    if "row" not in out and out.get("sheet_row") is not None:
+        out["row"] = out["sheet_row"]
+    if "description" not in out or out.get("description") is None:
+        out["description"] = []
+    return out
+
+
 def _get_job(row: int) -> dict:
-    job = sheets.get_job_by_row(row)
+    job = job_index.get_job_by_row(row)
     if job is None:
         abort(404)
-    return job
+    return _normalize_job(job)
 
 
 def _job_from_request_for_row(row: int) -> dict:
     """Prefer output_folder from the request when it resolves to a usable folder (no Sheets read)."""
     out = (request.values.get("output_folder") or "").strip()
     if out and _output_folder_usable(out):
-        return {"row": row, "output_folder": out}
+        return _normalize_job({"row": row, "output_folder": out})
     return _get_job(row)
-
-
-def _filter_jobs(status: str):
-    return sheets.get_jobs(status if status != "all" else None)
 
 
 def _cv_detail_context(job: dict) -> dict:
@@ -112,13 +118,11 @@ def index():
     status = request.args.get("status", "all")
     search = request.args.get("q", "").strip().lower()
     sheet_configured = sheets.is_configured()
-    rows = _filter_jobs(status)
-    if search:
-        rows = [
-            j
-            for j in rows
-            if search in j["title"].lower() or search in j["employer"].lower()
-        ]
+    rows = job_index.list_jobs(
+        status_filter=status if status != "all" else None,
+        search=search if search else None,
+    )
+    rows = [_normalize_job(j) for j in rows]
     statuses = [
         ("all", "All statuses"),
         ("to_review", "To review"),
@@ -154,19 +158,33 @@ def cv_sections(row):
 
 @bp.route("/<int:row>/approve", methods=["POST"])
 def approve(row):
-    job = sheets.get_job_by_row(row)
-    if job is None:
+    raw = job_index.get_job_by_row(row)
+    if raw is None:
         abort(404)
-    ok = sheets.approve_job(row)
-    if not ok:
+    job = _normalize_job(raw)
+    try:
+        index_ok = job_index.set_status(job["slug"], "approved")
+    except ValueError:
         return render_template(
             "jobs/_action_row.html",
             job=job,
-            approve_error="Could not update the Sheet. Check credentials and try again.",
+            approve_error="Could not update the index. Try again or check the logs.",
         )
-    updated = sheets.get_job_by_row(row)
-    if updated is None:
-        updated = {**job, "status": "approved"}
+    if not index_ok:
+        return render_template(
+            "jobs/_action_row.html",
+            job=job,
+            approve_error="Could not update the index. Try again or check the logs.",
+        )
+    sheet_ok = sheets.approve_job(row)
+    if not sheet_ok:
+        current_app.logger.warning(
+            "Approve: index updated for row %s but Sheet write failed. The index is the source of truth, "
+            "sheet will need a manual sync later.",
+            row,
+        )
+    raw_updated = job_index.get_job_by_row(row)
+    updated = _normalize_job(raw_updated or {**job, "status": "approved"})
     return render_template("jobs/_action_row.html", job=updated, approve_error=None)
 
 

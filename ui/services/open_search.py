@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pipeline.dedup import deduplicate
 from pipeline.logger import log_jobs
 from scrapers.govuk import scrape_govuk_jobs
+
+from ui.services import job_index
+
+logger = logging.getLogger(__name__)
 
 
 def run_open_search(terms: list[str], location: str) -> tuple[bool, str | None, dict[str, Any]]:
@@ -40,6 +45,12 @@ def run_open_search(terms: list[str], location: str) -> tuple[bool, str | None, 
         job["cluster"] = "open_search"
 
     log_jobs(unique_jobs)
+
+    try:
+        job_index.rebuild_from_disk()
+        job_index.sync_from_sheet()
+    except Exception as exc:
+        logger.warning("Open search succeeded but index update failed: %s", exc)
 
     summary: dict[str, Any] = {
         "found": found,
