@@ -35,7 +35,7 @@
           {% for job in jobs %}
             <tr class="job-row"
                 data-job-json='{{ {"row": job.row, "title": job.title, "employer": job.employer, "location": job.location, "listing_url": job.listing_url, "description": job.description, "status": job.status, "output_folder": job.output_folder or ""} | tojson }}'>
-              <td class="px-4">{% with status=job.status %}{% include "partials/_status_badge.html" %}{% endwith %}</td>
+              <td id="job-row-status-{{ job.row }}" class="px-4">{% with status=job.status %}{% include "partials/_status_badge.html" %}{% endwith %}</td>
               <td class="text-body">{{ job.title }}</td>
               <td class="text-muted">{{ job.employer }}</td>
               <td class="text-muted">{{ job.location }}</td>

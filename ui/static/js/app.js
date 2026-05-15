@@ -46,7 +46,7 @@
     let buttons = "";
     if (job.status === "to_review") {
       buttons =
-        '<button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" ' +
+        '<button type="button" class="btn btn-dark btn-job-approve flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" ' +
         'hx-post="' +
         prefix +
         "/" +
@@ -54,7 +54,8 @@
         '/approve" hx-target="#' +
         id +
         '" hx-swap="outerHTML">' +
-        '<i class="bi bi-check-lg"></i> Approve</button>' +
+        '<span class="btn-job-approve__spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' +
+        '<span class="btn-job-approve__label d-inline-flex align-items-center gap-2"><i class="bi bi-check-lg"></i> Approve</span></button>' +
         '<button type="button" class="btn btn-outline-secondary flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>' +
         '<i class="bi bi-file-earmark-arrow-down"></i> Render PDF</button>' +
         '<button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled title="Not available yet">' +
@@ -374,5 +375,20 @@
         }
       }, 700);
     }, FADE_DELAY_MS);
+  });
+
+  document.body.addEventListener("htmx:afterSwap", function (event) {
+    const target = event.target;
+    if (!target || !target.id) return;
+    const match = target.id.match(/^job-action-row-(\d+)$/);
+    if (!match) return;
+    const row = match[1];
+    const statusCell = document.getElementById("job-row-status-" + row);
+    if (!statusCell) return;
+    const approvedBtn = target.querySelector('[title="Already approved"]');
+    if (approvedBtn) {
+      statusCell.innerHTML =
+        '<span class="status-badge status-badge--approved">Approved</span>';
+    }
   });
 })();

@@ -333,3 +333,21 @@ html, body {
 .js-template-choice[aria-pressed="true"] {
   box-shadow: 0 0 0 0.15rem rgba(0, 0, 0, 0.05);
 }
+
+/* HTMX: approve button loading state */
+.btn-job-approve .btn-job-approve__spinner {
+  display: none;
+}
+
+.btn-job-approve.htmx-request {
+  pointer-events: none;
+  opacity: 0.88;
+}
+
+.btn-job-approve.htmx-request .btn-job-approve__spinner {
+  display: inline-block;
+}
+
+.btn-job-approve.htmx-request .btn-job-approve__label {
+  display: none;
+}
