@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -53,11 +54,41 @@ def _pad_row(row: list[Any], length: int = 14) -> list[str]:
     return cells[:length]
 
 
+def _resolved_output_folder(output_folder: str | None) -> Path | None:
+    if not output_folder or not str(output_folder).strip():
+        return None
+    p = Path(output_folder.strip())
+    if not p.is_absolute():
+        p = REPO_ROOT / p
+    return p
+
+
 def _row_to_job(cells: list[str], row_num: int) -> dict[str, Any]:
     listing_url = cells[9]
     status_internal = _normalize_status(cells[11])
     notes = cells[13]
-    description: list[str] = [notes] if notes else []
+    output_folder = cells[10]
+
+    description: list[str] = []
+    if output_folder and str(output_folder).strip():
+        resolved = _resolved_output_folder(output_folder)
+        if resolved is not None:
+            job_json_path = resolved / "job.json"
+            if job_json_path.is_file():
+                try:
+                    job_data = json.loads(job_json_path.read_text(encoding="utf-8"))
+                    raw_desc = job_data.get("description", "")
+                    if isinstance(raw_desc, str) and raw_desc.strip():
+                        description = [raw_desc.strip()]
+                    elif isinstance(raw_desc, list):
+                        description = [
+                            s for x in raw_desc if (s := str(x).strip())
+                        ]
+                except Exception:
+                    pass
+
+    if not description and notes:
+        description = [notes]
 
     return {
         "row": row_num,
@@ -69,7 +100,7 @@ def _row_to_job(cells: list[str], row_num: int) -> dict[str, Any]:
         "closing_date": cells[6],
         "date_found": cells[0],
         "listing_url": listing_url,
-        "output_folder": cells[10],
+        "output_folder": output_folder,
         "status": status_internal,
         "priority": cells[7],
         "contact_info": cells[8],
