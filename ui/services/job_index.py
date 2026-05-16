@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -191,6 +192,69 @@ def set_status(slug: str, new_status: str) -> bool:
             break
     if not found:
         return False
+    _atomic_write_json(_index_path(), data)
+    return True
+
+
+def delete_job(slug: str) -> bool:
+    """Delete a job from the index and remove its output folder from disk.
+
+    Returns True if the entry was removed from the index.
+    Returns False if no entry with that slug was found.
+
+    Folder deletion is best-effort: if it fails, a warning is logged and
+    the index entry is still removed. The index is the source of truth
+    for the UI.
+
+    Path safety: the output_folder is resolved and verified to sit inside
+    the outputs/ directory before deletion. Paths outside outputs/ are
+    refused with a warning, and the folder is not touched. The index entry
+    is still removed.
+    """
+    if not slug or not str(slug).strip():
+        return False
+    slug = str(slug).strip()
+
+    data = _read_index()
+    jobs = list(data.get("jobs", []))
+
+    matched_idx = None
+    matched_entry = None
+    for i, job in enumerate(jobs):
+        if job.get("slug") == slug:
+            matched_idx = i
+            matched_entry = job
+            break
+
+    if matched_idx is None:
+        return False
+
+    output_folder = matched_entry.get("output_folder", "")
+    if output_folder:
+        resolved = _resolved_output_folder(str(output_folder))
+        if resolved is not None and resolved.is_dir():
+            outputs_root = _repo_root() / "outputs"
+            try:
+                resolved.resolve().relative_to(outputs_root.resolve())
+                inside_outputs = True
+            except ValueError:
+                inside_outputs = False
+            if inside_outputs:
+                try:
+                    shutil.rmtree(resolved)
+                except OSError as exc:
+                    print(
+                        f"Warning: could not delete folder {resolved} for slug {slug}: {exc}",
+                        file=sys.stderr,
+                    )
+            else:
+                print(
+                    f"Warning: refusing to delete folder outside outputs/: {resolved}",
+                    file=sys.stderr,
+                )
+
+    jobs.pop(matched_idx)
+    data["jobs"] = jobs
     _atomic_write_json(_index_path(), data)
     return True
 

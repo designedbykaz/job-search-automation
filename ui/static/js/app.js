@@ -267,6 +267,88 @@
     }
   }
 
+  document.addEventListener("click", function (event) {
+    const btn = event.target.closest(".js-delete-job");
+    if (!btn || btn.disabled) return;
+    event.preventDefault();
+
+    if (btn.dataset.confirming === "1") {
+      clearDeleteConfirm(btn);
+      const row = btn.dataset.jobRow;
+      if (!row) return;
+      const url = "/jobs/" + encodeURIComponent(row) + "/delete";
+      fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error("delete failed");
+          return response.json();
+        })
+        .then(function (data) {
+          if (!data || !data.ok) return;
+          const targetRow = String(row);
+          document
+            .querySelectorAll("#jobs-tbody tr.job-row")
+            .forEach(function (tr) {
+              try {
+                const parsed = JSON.parse(tr.dataset.jobJson);
+                if (String(parsed.row) === targetRow) {
+                  tr.remove();
+                }
+              } catch (err) {
+                /* ignore unparseable rows */
+              }
+            });
+          const detail = document.getElementById("job-detail");
+          if (detail) {
+            const replacement = document.createElement('div');
+            replacement.id = "job-detail";
+            replacement.className = "jobs-detail-empty";
+            detail.replaceWith(replacement);
+          }
+        })
+        .catch(function () {
+          /* fail silently for now; the row stays in the table */
+        });
+      return;
+    }
+
+    setDeleteConfirm(btn);
+  });
+
+  document.addEventListener("click", function (event) {
+    if (event.target.closest(".js-delete-job")) return;
+    document
+      .querySelectorAll('.js-delete-job[data-confirming="1"]')
+      .forEach(clearDeleteConfirm);
+  });
+
+  function setDeleteConfirm(btn) {
+    btn.dataset.confirming = "1";
+    btn.classList.add("is-confirming", "text-danger");
+    btn.classList.remove("text-muted");
+    btn.dataset.originalTitle = btn.getAttribute("title") || "";
+    btn.setAttribute("title", "Click again to confirm");
+    btn._deleteTimer = window.setTimeout(function () {
+      clearDeleteConfirm(btn);
+    }, CONFIRM_WINDOW_MS);
+  }
+
+  function clearDeleteConfirm(btn) {
+    if (btn._deleteTimer) {
+      window.clearTimeout(btn._deleteTimer);
+      btn._deleteTimer = null;
+    }
+    btn.dataset.confirming = "0";
+    btn.classList.remove("is-confirming", "text-danger");
+    btn.classList.add("text-muted");
+    if (btn.dataset.originalTitle !== undefined) {
+      btn.setAttribute("title", btn.dataset.originalTitle);
+    }
+  }
+
   function getJobIdFor(element) {
     const host = element.closest("[data-job-id]");
     return host ? host.dataset.jobId : null;

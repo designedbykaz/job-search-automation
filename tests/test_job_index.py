@@ -301,3 +301,63 @@ def test_get_counters_tallies_by_status(index_env):
     )
     counters = job_index.get_counters()
     assert counters == {"to_review": 2, "approved": 1, "pdf_ready": 1}
+
+
+def test_delete_job_removes_entry_from_index(index_env):
+    write_index(
+        index_env,
+        [
+            {"slug": "a", "title": "A", "output_folder": "outputs/a"},
+            {"slug": "b", "title": "B", "output_folder": "outputs/b"},
+        ],
+    )
+    assert job_index.delete_job("a") is True
+    jobs = job_index.list_jobs()
+    assert len(jobs) == 1
+    assert jobs[0]["slug"] == "b"
+
+
+def test_delete_job_removes_folder_from_disk(index_env, tmp_path):
+    folder = tmp_path / "outputs" / "x"
+    folder.mkdir(parents=True)
+    (folder / "job.json").write_text("{}", encoding="utf-8")
+    write_index(
+        index_env,
+        [
+            {"slug": "x", "title": "X", "output_folder": "outputs/x"},
+        ],
+    )
+    assert job_index.delete_job("x") is True
+    assert not folder.exists()
+
+
+def test_delete_job_returns_false_for_missing_slug(index_env):
+    write_index(index_env, [])
+    assert job_index.delete_job("nonexistent") is False
+
+
+def test_delete_job_succeeds_when_folder_already_gone(index_env):
+    write_index(
+        index_env,
+        [
+            {"slug": "ghost", "title": "Ghost", "output_folder": "outputs/ghost"},
+        ],
+    )
+    assert job_index.delete_job("ghost") is True
+    assert len(job_index.list_jobs()) == 0
+
+
+def test_delete_job_does_not_delete_paths_outside_outputs(index_env, tmp_path):
+    rogue_folder = tmp_path / "rogue_data"
+    rogue_folder.mkdir()
+    canary = rogue_folder / "important.txt"
+    canary.write_text("DO NOT DELETE", encoding="utf-8")
+    write_index(
+        index_env,
+        [
+            {"slug": "rogue", "title": "Rogue", "output_folder": "rogue_data"},
+        ],
+    )
+    job_index.delete_job("rogue")
+    assert rogue_folder.exists()
+    assert canary.exists()

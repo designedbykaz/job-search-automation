@@ -207,6 +207,20 @@ def approve(row):
     return render_template("jobs/_action_row.html", job=updated, approve_error=None)
 
 
+@bp.route("/<int:row>/delete", methods=["POST"])
+def delete_job_route(row):
+    job = job_index.get_job_by_row(row)
+    if job is None:
+        abort(404)
+    slug = job.get("slug")
+    if not slug:
+        abort(404)
+    removed = job_index.delete_job(slug)
+    if not removed:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return jsonify({"ok": True, "row": row})
+
+
 @bp.route("/<int:row>/cv-edit", methods=["POST"])
 def cv_edit(row):
     job = _job_from_request_for_row(row)
