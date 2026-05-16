@@ -48,11 +48,16 @@ def _has_usable_tailored_cv(output_folder: str) -> bool:
 
 def _normalize_job(job: dict) -> dict:
     """Index entries use sheet_row; templates expect row, description list."""
+    import re
     out = dict(job)
     if "row" not in out:
         out["row"] = out.get("sheet_row")
-    if "description" not in out or out.get("description") is None:
+    desc = out.get("description")
+    if not desc:
         out["description"] = []
+    elif isinstance(desc, str):
+        parts = [p.strip() for p in re.split(r"\n+", desc) if p.strip()]
+        out["description"] = parts if parts else []
     return out
 
 

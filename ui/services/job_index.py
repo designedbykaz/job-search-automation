@@ -100,6 +100,7 @@ def _entry_from_job_json(
         "output_folder": "outputs/" + slug.replace("\\", "/"),
         "status": "to_review",
         "has_tailored_cv": _has_tailored_cv(folder),
+        "description": str(raw.get("description", "") or ""),
     }
     if old:
         if old.get("sheet_row") is not None:
@@ -227,6 +228,7 @@ def add_job(job: dict) -> None:
         "output_folder": str(output_folder).strip().replace("\\", "/"),
         "status": job.get("status") if job.get("status") in VALID_STATUSES else "to_review",
         "has_tailored_cv": has_cv,
+        "description": str(job.get("description", "") or ""),
     }
     if entry["sheet_row"] is not None:
         entry["sheet_row"] = int(entry["sheet_row"])

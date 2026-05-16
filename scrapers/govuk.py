@@ -51,7 +51,13 @@ def get_job_description(job_url, session):
         desc = soup.select_one("div#job-description")
         if not desc:
             desc = soup.select_one("main")
-        description = re.sub(r"\s+", " ", desc.get_text(strip=True)) if desc else ""
+        if desc:
+            raw_text = desc.get_text(separator="\n", strip=True)
+            cleaned = re.sub(r"[ \t]+", " ", raw_text)
+            cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+            description = cleaned
+        else:
+            description = ""
 
         # Extract closing date
         closing_date = ""
