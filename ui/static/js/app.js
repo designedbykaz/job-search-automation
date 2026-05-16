@@ -116,12 +116,18 @@
       '<a href="' +
       escapeHtml(job.listing_url) +
       '" target="_blank" rel="noopener" class="small text-decoration-none d-inline-flex align-items-center gap-1">View listing <i class="bi bi-box-arrow-up-right"></i></a></div>' +
+      '<div class="d-flex align-items-center gap-1">' +
+      '<button type="button" class="js-delete-job btn btn-sm btn-link text-muted p-1" ' +
+      'data-job-row="' +
+      escapeHtml(String(r)) +
+      '" title="Delete this job">' +
+      '<i class="bi bi-trash"></i></button>' +
       '<button type="button" class="btn btn-sm btn-link text-muted p-1" ' +
       'hx-get="' +
       escapeHtml(jobsIndexUrl) +
       '" hx-select="#job-detail" hx-target="#job-detail" hx-swap="outerHTML" ' +
       'onclick="document.querySelectorAll(\'#jobs-tbody tr.is-selected\').forEach(function(el){ el.classList.remove(\'is-selected\'); });">' +
-      '<i class="bi bi-x-lg"></i></button></div>' +
+      '<i class="bi bi-x-lg"></i></button></div></div>' +
       '<div class="flex-grow-1 overflow-auto p-4">' +
       buildDescriptionSection(job) +
       '<div id="job-cv-sections-placeholder" class="text-muted small py-3">Loading tailored CV…</div>' +
