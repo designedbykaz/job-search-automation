@@ -135,26 +135,6 @@ def get_jobs(status_filter: str | None = None) -> list[dict[str, Any]]:
     want = status_filter.strip().lower()
     return [j for j in jobs if j["status"] == want]
 
-
-def get_job_by_row(row: int) -> dict[str, Any] | None:
-    """Return one job dict by Sheet row number, or None."""
-    if row < 2:
-        return None
-    if not is_configured():
-        return None
-    try:
-        sheet = _open_sheet()
-        values = sheet.row_values(row)
-    except Exception as exc:
-        print(f"Warning: could not read Sheet row {row}: {exc}")
-        return None
-
-    cells = _pad_row(values)
-    if not cells[9]:
-        return None
-    return _row_to_job(cells, row)
-
-
 def approve_job(row: int) -> bool:
     """Set Status column to Approved for this row."""
     if row < 2:
@@ -168,13 +148,3 @@ def approve_job(row: int) -> bool:
     except Exception as exc:
         print(f"Warning: could not approve Sheet row {row}: {exc}")
         return False
-
-
-def get_counters() -> dict[str, int]:
-    jobs = get_jobs()
-    counts = {"to_review": 0, "approved": 0, "pdf_ready": 0}
-    for j in jobs:
-        st = j["status"]
-        if st in counts:
-            counts[st] += 1
-    return counts

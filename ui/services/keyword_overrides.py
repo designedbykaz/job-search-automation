@@ -23,10 +23,6 @@ OVERRIDE_PATH = Path("config") / "keywords_override.json"
 EXAMPLE_PATH = Path("config") / "keywords_override.example.json"
 
 
-def has_edit() -> bool:
-    return OVERRIDE_PATH.is_file()
-
-
 def get_text() -> Tuple[str, bool]:
     """Return ``(pretty_json_text, is_edited)``.
 

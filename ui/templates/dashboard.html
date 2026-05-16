@@ -27,6 +27,11 @@
     </div>
   </div>
 
+  {% set counters = [
+    {"value": topbar_counters.to_review, "label": "Awaiting review"},
+    {"value": topbar_counters.approved, "label": "Approved, unrendered"},
+    {"value": topbar_counters.pdf_ready, "label": "Rendered"},
+  ] %}
   <div class="row g-3 mb-4">
     {% for counter in counters %}
       <div class="col-md-4">
