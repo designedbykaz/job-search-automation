@@ -2,51 +2,154 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{{NAME}} - CV (Template C)</title>
+  <title>{{NAME}} - CV</title>
   <style>
-    @page { size: A4; margin: 8mm; }
+    @page { size: A4; margin: 18mm; }
     html, body { margin: 0; padding: 0; }
     body {
-      font-family: sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 420px;
-      color: #888;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.5;
+      color: #000;
       background: #fff;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
     }
-    .msg { text-align: center; max-width: 440px; padding: 2rem; }
-    .msg h2 { font-weight: 600; margin: 0 0 0.75rem 0; color: #555; }
-    .msg p { margin: 0.25rem 0; font-size: 11pt; }
-    .msg .muted { font-size: 9pt; color: #aaa; }
+    .name {
+      font-size: 18pt;
+      font-weight: 700;
+      margin-bottom: 2pt;
+    }
+    .role {
+      font-size: 11pt;
+      color: #333;
+      margin-bottom: 8pt;
+    }
+    .contact {
+      font-size: 9.5pt;
+      color: #333;
+      margin-bottom: 18pt;
+    }
+    .section {
+      margin-top: 14pt;
+    }
+    .section-head {
+      font-size: 9.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 3pt;
+    }
+    .section-rule {
+      border: none;
+      border-top: 0.5pt solid #000;
+      margin: 0 0 8pt 0;
+    }
+    p {
+      margin: 0 0 6pt 0;
+    }
+    .exp {
+      margin-bottom: 10pt;
+    }
+    .exp-head {
+      font-weight: 700;
+      margin-bottom: 2pt;
+    }
+    .skill-row {
+      margin-bottom: 4pt;
+    }
+    .skill-label {
+      font-weight: 700;
+    }
+    .soft-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .soft-list li {
+      margin-bottom: 3pt;
+    }
+    .soft-list li::before {
+      content: "- ";
+    }
   </style>
 </head>
 <body>
-  <div class="msg">
-    <h2>Template C</h2>
-    <p>Not yet designed. Template A is the default.</p>
-    <p class="muted">Intended CV holder: {{NAME}}</p>
+  <div class="name">{{NAME}}</div>
+  <div class="role">{{CURRENT_POSITION}}</div>
+  <div class="contact">{{EMAIL}} | {{PHONE}} | linkedin.com/in/{{LINKEDIN}}</div>
+  <div class="section">
+    <div class="section-head">Objective</div>
+    <hr class="section-rule">
+    <p>{{OBJECTIVE}}</p>
   </div>
-
-  <!-- Absorbs placeholders defined by the real template so fill_template
-       does not emit unreplaced-placeholder warnings for stubs. -->
-  <div style="display:none" aria-hidden="true">
-    {{CURRENT_POSITION}} {{OBJECTIVE}}
-    {{EDU_INSTITUTION}} {{EDU_DATES}} {{EDU_DEGREE}} {{EDU_MODULES}} {{EDU_PROJECT}} {{EDU_EXTRA}}
-    {{CERTIFICATIONS}}
-    {{EXP_1_ROLE}} {{EXP_1_COMPANY}} {{EXP_1_DATE}} {{EXP_1_BODY}}
-    {{EXP_2_ROLE}} {{EXP_2_COMPANY}} {{EXP_2_DATE}} {{EXP_2_BODY}}
-    {{EXP_3_ROLE}} {{EXP_3_COMPANY}} {{EXP_3_DATE}} {{EXP_3_BODY}}
-    {{EXP_4_ROLE}} {{EXP_4_COMPANY}} {{EXP_4_DATE}} {{EXP_4_BODY}}
-    {{EXP_5_ROLE}} {{EXP_5_COMPANY}} {{EXP_5_DATE}} {{EXP_5_BODY}}
-    {{EXP_6_ROLE}} {{EXP_6_COMPANY}} {{EXP_6_DATE}} {{EXP_6_BODY}}
-    {{EXP_7_ROLE}} {{EXP_7_COMPANY}} {{EXP_7_DATE}} {{EXP_7_BODY}}
-    {{SKILL_SOFTWARE}} {{SKILL_TECHNICAL}} {{SKILL_DETAIL}} {{SKILL_AI}}
-    {{SOFT_SKILL_1}} {{SOFT_SKILL_2}} {{SOFT_SKILL_3}}
-    {{LANG_1}} {{LANG_2}} {{LANG_3}}
-    {{EMAIL}} {{PHONE}} {{LINKEDIN}}
+  <div class="section">
+    <div class="section-head">Education</div>
+    <hr class="section-rule">
+    <p>
+      <strong>{{EDU_INSTITUTION}}</strong> | {{EDU_DATES}}<br>
+      {{EDU_DEGREE}}<br>
+      Modules: {{EDU_MODULES}}<br>
+      Final Project: {{EDU_PROJECT}}<br>
+      {{EDU_EXTRA}}
+    </p>
+  </div>
+  <div class="section">
+    <div class="section-head">Certifications</div>
+    <hr class="section-rule">
+    <p>{{CERTIFICATIONS}}</p>
+  </div>
+  <div class="section">
+    <div class="section-head">Experience</div>
+    <hr class="section-rule">
+    <div class="exp">
+      <div class="exp-head">{{EXP_1_ROLE}} | {{EXP_1_COMPANY}} | {{EXP_1_DATE}}</div>
+      <p>{{EXP_1_BODY}}</p>
+    </div>
+    <div class="exp">
+      <div class="exp-head">{{EXP_2_ROLE}} | {{EXP_2_COMPANY}} | {{EXP_2_DATE}}</div>
+      <p>{{EXP_2_BODY}}</p>
+    </div>
+    <div class="exp">
+      <div class="exp-head">{{EXP_3_ROLE}} | {{EXP_3_COMPANY}} | {{EXP_3_DATE}}</div>
+      <p>{{EXP_3_BODY}}</p>
+    </div>
+    <div class="exp">
+      <div class="exp-head">{{EXP_4_ROLE}} | {{EXP_4_COMPANY}} | {{EXP_4_DATE}}</div>
+      <p>{{EXP_4_BODY}}</p>
+    </div>
+    <div class="exp">
+      <div class="exp-head">{{EXP_5_ROLE}} | {{EXP_5_COMPANY}} | {{EXP_5_DATE}}</div>
+      <p>{{EXP_5_BODY}}</p>
+    </div>
+    <div class="exp">
+      <div class="exp-head">{{EXP_6_ROLE}} | {{EXP_6_COMPANY}} | {{EXP_6_DATE}}</div>
+      <p>{{EXP_6_BODY}}</p>
+    </div>
+    <div class="exp">
+      <div class="exp-head">{{EXP_7_ROLE}} | {{EXP_7_COMPANY}} | {{EXP_7_DATE}}</div>
+      <p>{{EXP_7_BODY}}</p>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-head">Hard Skills</div>
+    <hr class="section-rule">
+    <div class="skill-row"><span class="skill-label">Software:</span> {{SKILL_SOFTWARE}}</div>
+    <div class="skill-row"><span class="skill-label">Technical:</span> {{SKILL_TECHNICAL}}</div>
+    <div class="skill-row"><span class="skill-label">Attention to Detail:</span> {{SKILL_DETAIL}}</div>
+    <div class="skill-row"><span class="skill-label">AI Adoption:</span> {{SKILL_AI}}</div>
+  </div>
+  <div class="section">
+    <div class="section-head">Soft Skills</div>
+    <hr class="section-rule">
+    <ul class="soft-list">
+      <li>{{SOFT_SKILL_1}}</li>
+      <li>{{SOFT_SKILL_2}}</li>
+      <li>{{SOFT_SKILL_3}}</li>
+    </ul>
+  </div>
+  <div class="section">
+    <div class="section-head">Languages</div>
+    <hr class="section-rule">
+    <p>{{LANG_1}} | {{LANG_2}} | {{LANG_3}}</p>
   </div>
 </body>
 </html>
