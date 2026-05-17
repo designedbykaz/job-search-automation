@@ -22,3 +22,7 @@ config/scrapers.json
 config/keywords_override.json
 .claude/
 .idea/
+# Local reference / experiments (not part of the app)
+reference/
+dev_scripts/
+template versions/
