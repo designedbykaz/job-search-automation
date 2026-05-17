@@ -2,7 +2,7 @@
 
 Convention: each job output folder may contain ``cv_template_choice.json``
 with a single field ``{"template": "a"|"b"|"c"}``. If the file is missing or
-malformed, the choice defaults to ``"a"``. The file is consumed by both the
+malformed, the choice defaults to ``"c"``. The file is consumed by both the
 Flask UI (for preview and button state) and the v1 ``render_approved.py``.
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 
 CHOICE_NAME = "cv_template_choice.json"
 VALID = ("a", "b", "c")
-DEFAULT = "a"
+DEFAULT = "c"
 
 
 def get_choice(output_folder: str | Path) -> str:

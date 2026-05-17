@@ -3,6 +3,8 @@ from pathlib import Path
 
 from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
 
+from pipeline.tailor import tailor_cv
+
 from ui.services import (
     activity_log,
     cv_template_choice,
@@ -202,6 +204,22 @@ def approve(row):
         from_status=job.get("status", "to_review"),
         to_status="approved",
     )
+    output_folder_path = _resolved_output_folder(job.get("output_folder", ""))
+    if output_folder_path is not None and output_folder_path.is_dir():
+        job_for_tailor = {
+            "title": job.get("title", ""),
+            "employer": job.get("employer", ""),
+            "description": job.get("description", "") if isinstance(job.get("description"), str) else "\n\n".join(job.get("description") or []),
+        }
+        try:
+            tailor_cv(job_for_tailor, output_folder_path)
+        except Exception as exc:
+            current_app.logger.warning(
+                "Approve: tailoring failed for row %s (%s). Job is approved but no cv_tailored.json was written. Cause: %s",
+                row,
+                job.get("slug", ""),
+                exc,
+            )
     raw_updated = job_index.get_job_by_row(row)
     updated = _normalize_job(raw_updated or {**job, "status": "approved"})
     return render_template("jobs/_action_row.html", job=updated, approve_error=None)
