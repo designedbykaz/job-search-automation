@@ -148,3 +148,18 @@ def approve_job(row: int) -> bool:
     except Exception as exc:
         print(f"Warning: could not approve Sheet row {row}: {exc}")
         return False
+
+
+def mark_pdf_ready(row: int) -> bool:
+    """Set Status column to PDF Ready for this row."""
+    if row < 2:
+        return False
+    if not is_configured():
+        return False
+    try:
+        sheet = _open_sheet()
+        sheet.update_cell(row, STATUS_COL, "PDF Ready")
+        return True
+    except Exception as exc:
+        print(f"Warning: could not mark PDF ready on Sheet row {row}: {exc}")
+        return False

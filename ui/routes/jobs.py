@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, send_file, url_for
 
 from pipeline.tailor import tailor_cv
 
@@ -223,6 +223,87 @@ def approve(row):
     raw_updated = job_index.get_job_by_row(row)
     updated = _normalize_job(raw_updated or {**job, "status": "approved"})
     return render_template("jobs/_action_row.html", job=updated, approve_error=None)
+
+
+@bp.route("/<int:row>/render", methods=["POST"])
+def render(row):
+    raw = job_index.get_job_by_row(row)
+    if raw is None:
+        abort(404)
+    job = _normalize_job(raw)
+    output_folder_path = _resolved_output_folder(job.get("output_folder", ""))
+    if output_folder_path is None or not output_folder_path.is_dir():
+        return render_template(
+            "jobs/_action_row.html",
+            job=job,
+            render_error="Cannot render. Output folder is missing.",
+        )
+    tailored_data, _ = tailored_cv.read_preferred(str(output_folder_path))
+    if not tailored_data:
+        return render_template(
+            "jobs/_action_row.html",
+            job=job,
+            render_error="Cannot render. No tailored CV found. Try re-approving to retrigger tailoring.",
+        )
+    template_choice = cv_template_choice.get_choice(str(output_folder_path))
+    try:
+        from ui.services.render import render_pdf_for_job
+
+        render_pdf_for_job(output_folder_path, tailored_data, template_choice)
+    except Exception as exc:
+        current_app.logger.warning(
+            "Render: failed for row %s (%s). Cause: %s",
+            row,
+            job.get("slug", ""),
+            exc,
+        )
+        return render_template(
+            "jobs/_action_row.html",
+            job=job,
+            render_error="Render failed. Check the server logs for details.",
+        )
+    try:
+        job_index.set_status(job["slug"], "pdf_ready")
+    except ValueError:
+        pass
+    sheet_ok = sheets.mark_pdf_ready(row)
+    if not sheet_ok:
+        current_app.logger.warning(
+            "Render: index updated for row %s but Sheet write failed. The index is the source of truth, "
+            "sheet will need a manual sync later.",
+            row,
+        )
+    activity_log.record_status_change(
+        slug=job["slug"],
+        title=job.get("title", ""),
+        employer=job.get("employer", ""),
+        from_status=job.get("status", "approved"),
+        to_status="pdf_ready",
+    )
+    raw_updated = job_index.get_job_by_row(row)
+    updated = _normalize_job(raw_updated or {**job, "status": "pdf_ready"})
+    return render_template("jobs/_action_row.html", job=updated, render_error=None)
+
+
+@bp.route("/<int:row>/download", methods=["GET"])
+def download_pdf(row):
+    job = job_index.get_job_by_row(row)
+    if job is None:
+        abort(404)
+    output_folder_path = _resolved_output_folder(job.get("output_folder", ""))
+    if output_folder_path is None or not output_folder_path.is_dir():
+        abort(404)
+    pdf_path = output_folder_path / "cv_output.pdf"
+    if not pdf_path.is_file():
+        abort(404)
+    slug_tail = (job.get("slug", "") or "cv_output").split("/")[-1]
+    download_name = f"{slug_tail}.pdf"
+    return send_file(
+        str(pdf_path),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/pdf",
+    )
 
 
 @bp.route("/<int:row>/delete", methods=["POST"])

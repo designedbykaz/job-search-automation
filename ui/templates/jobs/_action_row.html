@@ -2,6 +2,9 @@
   {% if approve_error is defined and approve_error %}
     <div class="alert alert-danger small py-2 mb-2" role="alert">{{ approve_error }}</div>
   {% endif %}
+  {% if render_error is defined and render_error %}
+    <div class="alert alert-danger small py-2 mb-2" role="alert">{{ render_error }}</div>
+  {% endif %}
   <div class="d-flex flex-wrap gap-2 align-items-center">
     {% if job.status == 'to_review' %}
       <button type="button"
@@ -22,16 +25,22 @@
       <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled title="Already approved">
         <i class="bi bi-check-lg"></i> Approved
       </button>
-      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
-        <i class="bi bi-file-earmark-arrow-down"></i> Render PDF
+      <button type="button"
+              class="btn btn-dark btn-job-approve flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2"
+              hx-post="{{ url_for('jobs.render', row=job.row) }}"
+              hx-target="#job-action-row-{{ job.row }}"
+              hx-swap="outerHTML">
+        <span class="btn-job-approve__spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span class="btn-job-approve__label d-inline-flex align-items-center gap-2"><i class="bi bi-file-earmark-arrow-down"></i> Render PDF</span>
       </button>
       <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled title="Not available yet">
         <i class="bi bi-archive"></i> Archive
       </button>
     {% elif job.status == 'pdf_ready' %}
-      <button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>
+      <a href="{{ url_for('jobs.download_pdf', row=job.row) }}"
+         class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2">
         <i class="bi bi-file-earmark-arrow-down"></i> Download PDF
-      </button>
+      </a>
       <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled>
         <i class="bi bi-arrow-clockwise"></i> Re-render
       </button>
