@@ -64,14 +64,16 @@
       buttons =
         '<button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled title="Already approved">' +
         '<i class="bi bi-check-lg"></i> Approved</button>' +
-        '<button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>' +
-        '<i class="bi bi-file-earmark-arrow-down"></i> Render PDF</button>' +
+        '<button type="button" class="btn btn-dark btn-job-approve flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" ' +
+        'hx-post="' + prefix + '/' + r + '/render" hx-target="#' + id + '" hx-swap="outerHTML">' +
+        '<span class="btn-job-approve__spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' +
+        '<span class="btn-job-approve__label d-inline-flex align-items-center gap-2"><i class="bi bi-file-earmark-arrow-down"></i> Render PDF</span></button>' +
         '<button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled title="Not available yet">' +
         '<i class="bi bi-archive"></i> Archive</button>';
     } else if (job.status === "pdf_ready") {
       buttons =
-        '<button type="button" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2" disabled>' +
-        '<i class="bi bi-file-earmark-arrow-down"></i> Download PDF</button>' +
+        '<a href="' + prefix + '/' + r + '/download" class="btn btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2">' +
+        '<i class="bi bi-file-earmark-arrow-down"></i> Download PDF</a>' +
         '<button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" disabled>' +
         '<i class="bi bi-arrow-clockwise"></i> Re-render</button>';
     }
