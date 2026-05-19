@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "clusters": {
+    "CLU_1": {
+      "label": "Example Cluster",
+      "keywords": ["example keyword", "another example"],
+      "active": true,
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  }
+}

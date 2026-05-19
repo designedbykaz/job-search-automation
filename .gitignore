@@ -20,9 +20,11 @@ ui/sample_outputs/**/cv_tailored_edited.json
 # Run page operator overrides; .example siblings are committed
 config/scrapers.json
 config/keywords_override.json
+config/clusters.json
 .claude/
 .idea/
 # Local reference / experiments (not part of the app)
 reference/
 dev_scripts/
 template versions/
+profile/
