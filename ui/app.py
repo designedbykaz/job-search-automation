@@ -11,10 +11,20 @@ def create_app():
 
     app = Flask(__name__)
 
-    from ui.routes import dashboard, pipeline, jobs, content, prompts, cv_templates, settings
+    from ui.routes import (
+        dashboard,
+        pipeline,
+        jobs,
+        content,
+        prompts,
+        cv_templates,
+        settings,
+        cluster_admin,
+    )
 
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(pipeline.bp)
+    app.register_blueprint(cluster_admin.bp)
     app.register_blueprint(jobs.bp)
     app.register_blueprint(content.bp)
     app.register_blueprint(prompts.bp)
