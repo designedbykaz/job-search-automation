@@ -7,6 +7,7 @@ from pipeline.tailor import tailor_cv
 
 from ui.services import (
     activity_log,
+    clusters,
     cv_template_choice,
     job_index,
     preview,
@@ -49,7 +50,13 @@ def _has_usable_tailored_cv(output_folder: str) -> bool:
 
 
 def _normalize_job(job: dict) -> dict:
-    """Index entries use sheet_row; templates expect row, description list."""
+    """Normalize an index entry for template rendering.
+    - row: copied from sheet_row if missing
+    - description: string normalized to a list of paragraphs
+    - cluster: CLU_N ids are resolved to their human label via the
+      cluster service; other values (legacy labels, "open_search")
+      pass through unchanged
+    """
     import re
     out = dict(job)
     if "row" not in out:
@@ -60,6 +67,11 @@ def _normalize_job(job: dict) -> dict:
     elif isinstance(desc, str):
         parts = [p.strip() for p in re.split(r"\n+", desc) if p.strip()]
         out["description"] = parts if parts else []
+    cluster_value = out.get("cluster", "")
+    if isinstance(cluster_value, str) and cluster_value.startswith("CLU_"):
+        cluster_obj = clusters.get_cluster(cluster_value)
+        if cluster_obj is not None:
+            out["cluster"] = cluster_obj.get("label", cluster_value)
     return out
 
 
