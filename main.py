@@ -78,6 +78,13 @@ def run_pipeline():
     if mode in ("full", "scrape"):
         print("Stage 4: Logging to Google Sheets...")
         log_jobs(jobs)
+        try:
+            from ui.services import job_index
+            job_index.rebuild_from_disk()
+            job_index.sync_from_sheet()
+            print("Index updated.")
+        except Exception as exc:
+            print(f"Warning: log succeeded but index update failed: {exc}")
     else:
         print("Stage 4: Skipped (tailor-only mode)")
 
