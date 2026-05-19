@@ -10,6 +10,7 @@ from scrapers.govuk import scrape_govuk_jobs
 from pipeline.dedup import deduplicate, filter_by_keywords, create_output_folders
 from pipeline.tailor import tailor_cv, tailor_cover_letter
 from pipeline.logger import log_jobs
+from ui.services import clusters
 from pathlib import Path
 from dotenv import load_dotenv
 import json, os
@@ -42,9 +43,12 @@ def run_pipeline():
         print("This mode is not yet fully implemented.")
         return
 
+    active_keywords = clusters.get_active_keywords()
+    keyword_to_cluster_map = clusters.get_keyword_to_cluster_map()
+
     # STAGE 1 - SCRAPE
     print("Stage 1: Scraping job boards...")
-    govuk_jobs = scrape_govuk_jobs()
+    govuk_jobs = scrape_govuk_jobs(keywords=active_keywords)
     # nhs_jobs = scrape_nhs_jobs()
     # totaljobs_jobs = scrape_totaljobs()
     all_jobs = govuk_jobs
@@ -53,7 +57,7 @@ def run_pipeline():
     # STAGE 2 - DEDUPLICATE AND FILTER
     print("Stage 2: Deduplicating and filtering...")
     unique_jobs = deduplicate(all_jobs)
-    filtered_jobs = filter_by_keywords(unique_jobs)
+    filtered_jobs = filter_by_keywords(unique_jobs, keyword_to_cluster_map)
     jobs = create_output_folders(filtered_jobs)
     print(f"Jobs after dedup and filter: {len(jobs)}")
 

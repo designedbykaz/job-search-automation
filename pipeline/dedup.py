@@ -5,9 +5,6 @@ import re, os
 from datetime import date
 from pathlib import Path
 
-from config.keywords import JOB_KEYWORDS, KEYWORDS_BY_CLUSTER
-
-
 def deduplicate(all_jobs):
     """
     Remove duplicates where title.lower() + employer.lower() match exactly.
@@ -25,24 +22,22 @@ def deduplicate(all_jobs):
     return unique
 
 
-def filter_by_keywords(jobs):
+def filter_by_keywords(jobs, keyword_to_cluster_map):
     """
-    Return only jobs whose title contains at least one JOB_KEYWORDS entry
-    (case-insensitive substring match). Matched jobs are tagged with their cluster.
+    Return only jobs whose title contains at least one keyword from the map.
+    Matched jobs are tagged with their cluster ID (e.g. 'CLU_1').
+    Parameters:
+        jobs: list of job dicts.
+        keyword_to_cluster_map: dict mapping lowercased keyword to cluster ID.
+            Typically produced by clusters.get_keyword_to_cluster_map().
     """
     matched = []
-    keyword_to_cluster = {
-        kw.lower(): cluster
-        for cluster, keywords in KEYWORDS_BY_CLUSTER.items()
-        for kw in keywords
-    }
-    keywords_lower = list(keyword_to_cluster.keys())
 
     for job in jobs:
         title = job.get("title", "").lower()
-        for kw in keywords_lower:
+        for kw, cluster_id in keyword_to_cluster_map.items():
             if kw in title:
-                job["cluster"] = keyword_to_cluster.get(kw, "unknown")
+                job["cluster"] = cluster_id
                 matched.append(job)
                 break
 

@@ -8,7 +8,6 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-from config.keywords import JOB_KEYWORDS
 from config.scraper_settings import get_scraper_settings
 
 load_dotenv()
@@ -93,8 +92,12 @@ def scrape_govuk_jobs(keywords=None):
     Keys: title, employer, location, date, url, description, source.
     If keywords is None, falls back to config.keywords.JOB_KEYWORDS.
     """
-    if keywords is None:
-        keywords = JOB_KEYWORDS
+    if not keywords:
+        raise ValueError(
+            "scrape_govuk_jobs requires a non-empty keywords list. "
+            "Pass keywords explicitly from clusters.get_active_keywords() "
+            "or from open search input."
+        )
     results = []
 
     if not can_fetch(SEARCH_URL):
