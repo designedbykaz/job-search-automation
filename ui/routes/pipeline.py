@@ -1,8 +1,6 @@
 from flask import Blueprint, render_template, request
 
-from config.keywords import ACTIVE_CLUSTERS, KEYWORDS_BY_CLUSTER
-
-from ui.services import keyword_overrides, open_search, scraper_config
+from ui.services import open_search, scraper_config
 
 bp = Blueprint("pipeline", __name__, url_prefix="/run")
 
@@ -18,26 +16,10 @@ SCRAPER_PANEL = {
     "form_field": "scraper_json_text",
 }
 
-KEYWORD_PANEL = {
-    "id": "keyword-cluster-panel",
-    "textarea_id": "keyword-cluster-textarea",
-    "feedback_id": "keyword-cluster-feedback",
-    "edited_badge_id": "keyword-cluster-edited-badge",
-    "reset_wrapper_id": "keyword-cluster-reset-wrapper",
-    "save_url_endpoint": "pipeline.save_keyword_overrides",
-    "reset_url_endpoint": "pipeline.reset_keyword_overrides",
-    "form_field": "keyword_json_text",
-}
-
 
 def _scraper_panel_context() -> dict:
     text, is_edited = scraper_config.get_text()
     return {"panel": SCRAPER_PANEL, "text": text, "is_edited": is_edited}
-
-
-def _keyword_panel_context() -> dict:
-    text, is_edited = keyword_overrides.get_text()
-    return {"panel": KEYWORD_PANEL, "text": text, "is_edited": is_edited}
 
 
 @bp.route("/")
@@ -47,25 +29,11 @@ def index():
         {"name": "NHS Jobs", "enabled": False, "status": "untested"},
         {"name": "Totaljobs", "enabled": False, "status": "untested"},
     ]
-    clusters = [
-        {
-            "name": cluster_name,
-            "enabled": ACTIVE_CLUSTERS.get(cluster_name, False),
-            "keywords": len(keywords),
-        }
-        for cluster_name, keywords in KEYWORDS_BY_CLUSTER.items()
-    ]
-    date_ranges = ["Since last run", "Last 24 hours", "Last 7 days", "Last 30 days"]
-    modes = ["Full run (scrape + tailor)", "Scrape only"]
     return render_template(
         "pipeline/index.html",
         active_nav="run",
         scrapers=scrapers,
-        clusters=clusters,
-        date_ranges=date_ranges,
-        modes=modes,
         scraper_panel_ctx=_scraper_panel_context(),
-        keyword_panel_ctx=_keyword_panel_context(),
     )
 
 
@@ -88,28 +56,6 @@ def reset_scraper_config():
     return render_template(
         "pipeline/_scraper_config_panel.html",
         **_scraper_panel_context(),
-    )
-
-
-@bp.route("/config/keywords", methods=["POST"])
-def save_keyword_overrides():
-    text = request.form.get(KEYWORD_PANEL["form_field"], "")
-    ok, error, warnings = keyword_overrides.save(text)
-    return render_template(
-        "pipeline/_panel_save_feedback.html",
-        panel=KEYWORD_PANEL,
-        success=ok,
-        error=error,
-        warnings=warnings,
-    )
-
-
-@bp.route("/config/keywords/reset", methods=["POST"])
-def reset_keyword_overrides():
-    keyword_overrides.reset()
-    return render_template(
-        "pipeline/_keyword_cluster_panel.html",
-        **_keyword_panel_context(),
     )
 
 

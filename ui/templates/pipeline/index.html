@@ -53,60 +53,23 @@
         </div>
       </div>
 
-      <div class="row g-3 mb-4">
-        <div class="col-lg-7">
-          <div class="panel p-4 mb-0 h-100">
-            <h2 class="section-title">Keyword clusters</h2>
-            <div class="row g-2">
-              {% for c in clusters %}
-                <div class="col-md-6">
-                  <label class="form-check d-flex align-items-center gap-2 p-3 border rounded m-0">
-                    <input class="form-check-input m-0" type="checkbox"
-                           name="cluster_{{ loop.index }}" {% if c.enabled %}checked{% endif %}>
-                    <span class="flex-grow-1">
-                      <span class="d-block">{{ c.name }}</span>
-                      <span class="d-block text-muted small">{{ c.keywords }} keywords</span>
-                    </span>
-                  </label>
-                </div>
-              {% endfor %}
-            </div>
+      {% include "run/_cluster_manager.html" %}
+      {% include "run/_cluster_modal.html" %}
+
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="clusterScrapeLocation" class="form-label">Location (optional)</label>
+            <input type="text" class="form-control" id="clusterScrapeLocation"
+                   placeholder="e.g. Slough, London, Leeds">
+            <div class="form-text">Appended to each keyword as a query suffix. Leave blank to search all locations.</div>
           </div>
-        </div>
-        <div class="col-lg-5">
-          {% with panel=keyword_panel_ctx.panel, text=keyword_panel_ctx.text, is_edited=keyword_panel_ctx.is_edited %}
-            {% include "pipeline/_keyword_cluster_panel.html" %}
-          {% endwith %}
-        </div>
-      </div>
-
-      <div class="panel p-4 mb-4">
-        <h2 class="section-title">Filters</h2>
-        <div class="mb-3">
-          <label class="form-label small">Location</label>
-          <input type="text" class="form-control" placeholder="e.g., London, Manchester, Remote">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small">Date range</label>
-          <select class="form-select">
-            {% for d in date_ranges %}<option>{{ d }}</option>{% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="form-label small">Mode</label>
-          <select class="form-select">
-            {% for m in modes %}<option>{{ m }}</option>{% endfor %}
-          </select>
+          <button type="button" id="runClusterScrapeBtn" class="btn btn-primary">
+            <i class="bi bi-play-fill"></i> Run cluster scrape
+          </button>
+          <div id="clusterScrapeSummary" class="mt-3"></div>
         </div>
       </div>
-
-      <button type="button" class="btn btn-dark w-100 py-2 d-inline-flex align-items-center justify-content-center gap-2" disabled>
-        <i class="bi bi-play-fill"></i>
-        Run pipeline
-      </button>
-      <p class="text-muted small text-center mt-2 mb-0">
-        Wiring to the pipeline orchestrator comes in a later phase.
-      </p>
     </div>
 
     <div class="tab-pane fade" id="open-pane" role="tabpanel" tabindex="0">
@@ -114,4 +77,5 @@
     </div>
   </div>
 </div>
+<script src="{{ url_for('static', filename='js/cluster_manager.js') }}"></script>
 {% endblock %}
