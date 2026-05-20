@@ -481,4 +481,21 @@
         '<span class="status-badge status-badge--approved">Approved</span>';
     }
   });
+
+  document.body.addEventListener("htmx:afterSwap", function (event) {
+    var target = event.target;
+    if (!target || !target.id) return;
+    var match = target.id.match(/^job-action-row-(\d+)$/);
+    if (!match) return;
+    var rowNum = match[1];
+    document.querySelectorAll("#jobs-tbody tr.job-row").forEach(function (el) {
+      try {
+        var data = JSON.parse(el.dataset.jobJson);
+        if (String(data.row) === rowNum) {
+          data.status = "approved";
+          el.dataset.jobJson = JSON.stringify(data);
+        }
+      } catch (e) { /* ignore */ }
+    });
+  });
 })();
