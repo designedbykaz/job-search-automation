@@ -90,7 +90,7 @@ def scrape_govuk_jobs(keywords=None):
     """
     Search GOV.UK Jobs for each keyword; return list of job dicts.
     Keys: title, employer, location, date, url, description, source.
-    If keywords is None, falls back to config.keywords.JOB_KEYWORDS.
+    Raises ValueError if keywords is None or empty.
     """
     if not keywords:
         raise ValueError(
