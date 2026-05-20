@@ -1,5 +1,3 @@
-
-
 ---
 
 # Job Search Automation Pipeline
@@ -23,112 +21,143 @@ The Sheet is the canonical approval log, mobile-friendly and editable from anywh
 
 When you approve a job in the UI, the disk index updates instantly and the Sheet is updated in the background. If the Sheet write fails, the UI stays approved and a warning is logged.
 
-## Setup
+The pipeline has two entry points (cluster search and open search) that converge after scraping. The disk index is the source of truth; the Google Sheet is a mobile-friendly sidecar. CV editing preserves the original tailored JSON so a user edit can always be reverted.
 
-Requires Python 3.12.
+### **Data flow:** 
 
-1. Clone the repo and create the virtual environment:
+**from scrape to rendered PDF** 
+
+
+
+```mermaid
+flowchart TD
+    A["User opens /run/"] --> B{Choose mode}
+    B -->|Cluster search| C[run_cluster_search]
+    B -->|Open search| D[run_open_search]
+    C --> E[scrape_govuk_jobs]
+    D --> E
+    E --> F[deduplicate]
+    F --> G{Path}
+    G -->|Cluster| H[filter_by_keywords]
+    G -->|Open search| I
+    H --> I[create_output_folders]
+    I --> J[(job.json on disk)]
+    J --> K[_log_jobs_counted]
+    K --> L[(Sheet row)]
+    K --> M[rebuild_from_disk + sync_from_sheet]
+    M --> N[(_index.json)]
+    N --> O["/jobs/ page"]
+    O --> P{User action}
+    P -->|Delete| Q[delete_job_route]
+    P -->|Approve| R[tailor.py]
+    R --> S[(cv_tailored.json)]
+    S --> T[Edit in UI]
+    T --> U[(cv_tailored_edited.json)]
+    U --> V[render_pdf_for_job]
+    V --> W[(cv_output.pdf)]
+    W --> X[Download]
+    Q --> Y[Job removed]
 
 ```
-python -m venv ui/.venv
-ui\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
 
-```
 
-1. Copy `.env.example` to `.env` and fill in your values:
 
-```
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-APIFY_API_TOKEN=your_apify_token_here
-GOOGLE_SHEETS_ID=your_google_sheet_id_here
-GOOGLE_CREDENTIALS_PATH=google_credentials.json
 
-```
 
-1. Place your Google service account credentials JSON file at the path specified by `GOOGLE_CREDENTIALS_PATH`. The service account needs edit access to the target Sheet.
-2. (Optional, for CV tailoring) Copy the `.example` files under `content/` and `prompts/` and fill in your details.
+### Key design decisions
 
-## Running the app
+- **Disk index is the source of truth.** `outputs/_index.json` is authoritative. The Google Sheet is updated write-through but reading the index never goes to the network.
+- **Stable IDs over labels.** Clusters use `CLU_N` identifiers that survive renames. The UI resolves IDs to human labels at display time.
+- **Pipeline functions are decoupled from the clusters service.** Scraping and filtering take cluster data as parameters; only the caller (the UI service or `main.py`) reads from `clusters.json`.
+- **Original tailored JSON is never overwritten.** `cv_tailored.json` is the Claude output; user edits go to `cv_tailored_edited.json`. Reset always has something to return to.
+- **Open search and cluster search converge.** They differ only at the filter step; both write through the same persistence path.
+
+### Running the app
 
 Start the web UI:
 
 ```
 ui\.venv\Scripts\Activate.ps1
 python -m ui.run
-
 ```
 
-Open http://127.0.0.1:5000 in your browser.
+Open `http://127.0.0.1:5000` in your browser.
 
 ### Terminal commands
 
-Full pipeline (scrape, dedup, filter, tailor, log):
+Full v1 pipeline (scrape, dedup, filter, tailor, log):
 
 ```
 python main.py --mode full
-
 ```
 
-Scrape only (no API spend):
+Scrape only, no Claude API spend:
 
 ```
 python main.py --mode scrape
-
 ```
 
-Render PDFs for approved jobs:
+Render PDFs for approved jobs (v1 batch renderer):
 
 ```
 python render_approved.py
-
 ```
 
-Rebuild the disk index from scratch (one-off utility):
+Rebuild the disk index from output folders (one-off utility, useful after manual file deletion):
 
 ```
 python -m scripts.build_job_index
-
 ```
 
-## Project structure
+### Project structure
 
 ```
 job-pipeline/
-  main.py                  v1 orchestrator
-  render_approved.py       Renders approved CVs to PDF
-  scrapers/                Job board scrapers
+  main.py                  v1 CLI orchestrator
+  render_approved.py       v1 batch PDF renderer
+  scrapers/                Job board scrapers (govuk active; nhs, totaljobs stubbed)
   pipeline/                Dedup, keyword filter, tailoring, sheet logging
-  config/                  Keyword clusters and scraper settings
-  content/                 CV content (gitignored)
+  config/
+    clusters.json          Runtime-editable search clusters (gitignored)
+    clusters.example.json  Committed example shape
+    scrapers.json          Per-scraper settings (gitignored)
+  content/                 CV content reservoir (gitignored)
+  profile/                 Knowledge graph for tailoring (gitignored)
   prompts/                 Claude prompts (gitignored)
-  templates/               CV HTML templates for WeasyPrint
-  outputs/                 Scraped jobs and indexes (gitignored)
+  templates/               CV HTML templates for WeasyPrint (A, B, C)
+  outputs/                 Scraped jobs, index, activity log (gitignored)
+    _index.json            Source of truth: all known jobs
+    _activity.json         Recent scrape and approval events
+    YYYY-MM-DD/<slug>/     One folder per scraped job
   ui/                      Flask web app
-    routes/                Page routes
-    services/              Disk index, activity log, sheets, preview
+    routes/                Blueprints: dashboard, jobs, pipeline, cluster_admin
+    services/              Disk index, clusters, cluster_search, open_search, sheets, preview
     templates/             Jinja2 templates
     static/                Bootstrap, HTMX, custom JS and CSS
   scripts/                 One-off utilities
   tests/                   Pytest suite
-
 ```
 
 ## What works today
 
-- Open search scrape (freeform terms from the Run page)
+- Runtime-editable search clusters with a CRUD UI (create, edit, toggle active, delete)
+- Cluster scrape triggered from the browser
+- Open search scrape with freeform terms
 - Fast browser UI for reviewing jobs
 - Approve action with instant UI update and Sheet write-through
+- Render PDF for approved jobs (per-job, from the UI; or batch from the CLI)
 - Live activity feed on the Dashboard
-- CV tailoring via `main.py`
-- PDF rendering via `render_approved.py`
+- CV editing in the browser with live preview
+- Template A is the designed CV layout; Template C is a placeholder for a plain-text variant
 
 ## Coming next
 
-- Render PDF button wired in the UI
-- Cluster search Run pipeline triggered from the UI
-- Plain text CV template option
-- Archive feature with a recycle bin
+- Rename the Run page to Scraper
+- Split tailoring from approval (Tailor button generates the CV, Approve locks in the edited JSON for rendering)
+- Multi-step Claude tailoring pipeline using the profile knowledge graph
+- Cross-run dedup to prevent previously deleted jobs from returning in fresh scrapes
+- Background workers for long scrapes, with progress indicators
+- Archive button wiring and bulk actions on the Jobs page
 
 ## Testing
 
@@ -142,4 +171,3 @@ Tests cover the disk-based job index and the activity log services.
 ## License
 
 Personal project, all rights reserved.
-
