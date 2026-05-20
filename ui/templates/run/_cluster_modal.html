@@ -1,0 +1,31 @@
+<div class="modal fade" id="clusterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="clusterModalTitle">New Cluster</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="clusterIdInput" value="">
+        <div class="mb-3">
+          <label for="clusterLabelInput" class="form-label">Cluster name</label>
+          <input type="text" class="form-control" id="clusterLabelInput" placeholder="e.g. Engineering">
+        </div>
+        <div class="mb-3">
+          <label for="clusterKeywordsInput" class="form-label">Keywords (one per line)</label>
+          <textarea class="form-control" id="clusterKeywordsInput" rows="10" placeholder="civil engineer&#10;design engineer&#10;mechanical engineer"></textarea>
+          <div class="form-text">Enter one keyword or phrase per line. Case is preserved for display; matching is case-insensitive.</div>
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="clusterActiveInput" checked>
+          <label class="form-check-label" for="clusterActiveInput">Active (used in cluster scrapes)</label>
+        </div>
+        <div id="clusterModalError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="clusterSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
