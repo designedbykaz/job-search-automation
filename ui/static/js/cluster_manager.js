@@ -115,7 +115,7 @@
   }
 
   function openModalForCreate() {
-    document.getElementById("clusterModalTitle").textContent = "New Cluster";
+    document.getElementById("clusterModalTitle").textContent = "New cluster";
     document.getElementById("clusterIdInput").value = "";
     document.getElementById("clusterLabelInput").value = "";
     document.getElementById("clusterKeywordsInput").value = "";
@@ -291,7 +291,7 @@
         escapeHtml(String(data.indexed != null ? data.indexed : 0)) +
         " jobs</li>" +
         "</ul>" +
-        '<a href="/jobs/" class="btn btn-sm btn-primary">View jobs</a>' +
+        '<a href="/jobs/" class="btn btn-sm btn-dark">View jobs</a>' +
         "</div>";
     } catch (err) {
       summaryEl.innerHTML =

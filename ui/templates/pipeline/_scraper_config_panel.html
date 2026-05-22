@@ -1,6 +1,6 @@
 {# Scraper config panel: editable JSON for config/scrapers.json. #}
 {# Re-rendered wholesale by the reset endpoint; save uses an OOB feedback partial. #}
-<div id="{{ panel.id }}" class="panel p-4 mb-0 h-100 d-flex flex-column">
+<div id="{{ panel.id }}" class="panel p-3 mb-0 h-100 d-flex flex-column">
   <div class="d-flex align-items-center mb-2">
     <h2 class="section-title mb-0 me-2">Scraper config</h2>
     <span id="{{ panel.edited_badge_id }}">
@@ -40,7 +40,7 @@
   <textarea id="{{ panel.textarea_id }}"
             name="{{ panel.form_field }}"
             class="form-control font-monospace small flex-grow-1"
-            rows="14"
+            rows="10"
             spellcheck="false">{{ text }}</textarea>
   <div id="{{ panel.feedback_id }}" class="cv-feedback small mt-2" aria-live="polite"></div>
 </div>
