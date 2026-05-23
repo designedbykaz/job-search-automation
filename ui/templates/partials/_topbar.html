@@ -1,8 +1,12 @@
 <header class="app-topbar">
   <div class="d-flex align-items-center gap-3">
     <div class="d-flex align-items-center gap-2">
-      <span class="status-dot status-dot--idle"></span>
-      <span class="text-muted small">Idle</span>
+      <span class="status-dot status-dot--{{ pipeline_state.state }}"></span>
+      <span class="text-muted small">
+        {% if pipeline_state.state == 'running' %}Running
+        {% elif pipeline_state.state == 'error' %}Error
+        {% else %}Idle{% endif %}
+      </span>
     </div>
     <div class="app-topbar-divider"></div>
     <a href="{{ url_for('jobs.index', status='to_review') }}" class="app-topbar-stat">
@@ -15,5 +19,11 @@
       <span class="text-muted">approved</span>
     </a>
   </div>
-  <div class="text-muted small">Last run: 2 hours ago</div>
+  <div class="text-muted small">
+    {% if pipeline_state.last_run_relative %}
+      Last run: {{ pipeline_state.last_run_relative }}
+    {% else %}
+      No runs yet
+    {% endif %}
+  </div>
 </header>

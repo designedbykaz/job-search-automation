@@ -10,7 +10,7 @@ from pipeline.dedup import create_output_folders, deduplicate, filter_by_keyword
 from pipeline.logger import ensure_headers, get_sheet
 from scrapers.govuk import scrape_govuk_jobs
 
-from ui.services import clusters, job_index
+from ui.services import clusters, job_index, pipeline_state
 
 try:
     import gspread
@@ -144,64 +144,71 @@ def run_cluster_search(
 
     Returns a dict with the result summary.
     """
-    resolved = _resolve_clusters(cluster_ids)
-    clusters_used = [str(c.get("id", "")) for c in resolved if c.get("id")]
-    keyword_list, cluster_map = _build_keywords_and_map(resolved)
-
-    loc = (location or "").strip()
-    if loc:
-        keyword_list = [f"{kw} {loc}".strip() for kw in keyword_list]
-
-    print(
-        f"[cluster_search] Scraping with {len(keyword_list)} keywords "
-        f"across {len(clusters_used)} clusters..."
-    )
-
-    scraped_jobs = scrape_govuk_jobs(keywords=keyword_list)
-    scraped = len(scraped_jobs)
-    print(f"[cluster_search] Scraped {scraped} raw results.")
-
-    deduped = deduplicate(scraped_jobs)
-    deduplicated = len(deduped)
-    print(f"[cluster_search] After dedup: {deduplicated} unique jobs.")
-
-    matched_jobs = filter_by_keywords(deduped, cluster_map)
-    matched = len(matched_jobs)
-    print(f"[cluster_search] After filter: {matched} matched jobs.")
-
-    print("[cluster_search] Creating output folders...")
-    matched_jobs = create_output_folders(matched_jobs)
-
-    print("[cluster_search] Logging to Sheet...")
+    pipeline_state.set_running()
     try:
-        logged_to_sheet, sheet_errors = _log_jobs_counted(matched_jobs)
-    except Exception as exc:
-        logged_to_sheet = 0
-        sheet_errors = len(matched_jobs)
-        print(f"[cluster_search] Sheet logging failed entirely: {exc}")
+        resolved = _resolve_clusters(cluster_ids)
+        clusters_used = [str(c.get("id", "")) for c in resolved if c.get("id")]
+        keyword_list, cluster_map = _build_keywords_and_map(resolved)
 
-    if sheet_errors:
+        loc = (location or "").strip()
+        if loc:
+            keyword_list = [f"{kw} {loc}".strip() for kw in keyword_list]
+
         print(
-            f"[cluster_search] Sheet errors: {sheet_errors} "
-            "(jobs still on disk and in index)."
+            f"[cluster_search] Scraping with {len(keyword_list)} keywords "
+            f"across {len(clusters_used)} clusters..."
         )
 
-    print("[cluster_search] Rebuilding index...")
-    job_index.rebuild_from_disk()
-    job_index.sync_from_sheet()
-    indexed = len(job_index.list_jobs())
+        scraped_jobs = scrape_govuk_jobs(keywords=keyword_list)
+        scraped = len(scraped_jobs)
+        print(f"[cluster_search] Scraped {scraped} raw results.")
 
-    print(
-        f"[cluster_search] Done. {matched} jobs scraped, "
-        f"{sheet_errors} failed Sheet write."
-    )
+        deduped = deduplicate(scraped_jobs)
+        deduplicated = len(deduped)
+        print(f"[cluster_search] After dedup: {deduplicated} unique jobs.")
 
-    return {
-        "scraped": scraped,
-        "deduplicated": deduplicated,
-        "matched": matched,
-        "logged_to_sheet": logged_to_sheet,
-        "sheet_errors": sheet_errors,
-        "indexed": indexed,
-        "clusters_used": clusters_used,
-    }
+        matched_jobs = filter_by_keywords(deduped, cluster_map)
+        matched = len(matched_jobs)
+        print(f"[cluster_search] After filter: {matched} matched jobs.")
+
+        print("[cluster_search] Creating output folders...")
+        matched_jobs = create_output_folders(matched_jobs)
+
+        print("[cluster_search] Logging to Sheet...")
+        try:
+            logged_to_sheet, sheet_errors = _log_jobs_counted(matched_jobs)
+        except Exception as exc:
+            logged_to_sheet = 0
+            sheet_errors = len(matched_jobs)
+            print(f"[cluster_search] Sheet logging failed entirely: {exc}")
+
+        if sheet_errors:
+            print(
+                f"[cluster_search] Sheet errors: {sheet_errors} "
+                "(jobs still on disk and in index)."
+            )
+
+        print("[cluster_search] Rebuilding index...")
+        job_index.rebuild_from_disk()
+        job_index.sync_from_sheet()
+        indexed = len(job_index.list_jobs())
+
+        print(
+            f"[cluster_search] Done. {matched} jobs scraped, "
+            f"{sheet_errors} failed Sheet write."
+        )
+
+        summary = {
+            "scraped": scraped,
+            "deduplicated": deduplicated,
+            "matched": matched,
+            "logged_to_sheet": logged_to_sheet,
+            "sheet_errors": sheet_errors,
+            "indexed": indexed,
+            "clusters_used": clusters_used,
+        }
+        pipeline_state.set_idle(f"{matched} jobs matched")
+        return summary
+    except Exception as exc:
+        pipeline_state.set_error(str(exc))
+        raise

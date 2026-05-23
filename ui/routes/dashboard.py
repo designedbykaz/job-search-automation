@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 
-from ui.services import activity_log
+from ui.services import activity_log, pipeline_state
 
 bp = Blueprint("dashboard", __name__)
 
@@ -63,13 +63,38 @@ def _activity_items_from_log() -> list[dict]:
     return items
 
 
-@bp.route("/")
-def index():
-    status = {
+def _build_status() -> dict:
+    ps = pipeline_state.get_state()
+    raw_state = ps.get("state", "idle")
+    if raw_state == "running":
+        return {
+            "state": "running",
+            "label": "Pipeline running",
+            "detail": "Scrape in progress",
+        }
+    if raw_state == "error":
+        detail = str(ps.get("detail", "") or "").strip()
+        return {
+            "state": "error",
+            "label": "Pipeline error",
+            "detail": detail or "Last run failed",
+        }
+    last_run = str(ps.get("last_run_finished", "") or "").strip()
+    if last_run:
+        relative = activity_log.format_relative_time(last_run)
+        detail = f"Last run completed {relative}"
+    else:
+        detail = "No runs yet"
+    return {
         "state": "idle",
         "label": "Pipeline idle",
-        "detail": "Last run completed 2 hours ago",
+        "detail": detail,
     }
+
+
+@bp.route("/")
+def index():
+    status = _build_status()
     try:
         activity = _activity_items_from_log()
     except Exception:
