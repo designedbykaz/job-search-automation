@@ -188,7 +188,8 @@ html, body {
 
 .jobs-layout {
   display: flex;
-  min-height: 100%;
+  height: calc(100vh - var(--app-topbar-height));
+  overflow: hidden;
 }
 
 .jobs-list {
@@ -196,6 +197,8 @@ html, body {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .jobs-list--split {
@@ -207,12 +210,15 @@ html, body {
   background: #ffffff;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .jobs-detail-empty {
   width: 600px;
   border-left: 1px solid var(--app-border);
   display: none;
+  height: 100%;
 }
 
 .jobs-table th {

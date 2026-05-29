@@ -5,41 +5,22 @@ produces will differ slightly from WeasyPrint's PDF output (font rendering,
 @page rules). That gap is expected and tolerated; the overflow badge flags the
 only constraint that matters at the editing stage.
 
-Why not import ``fill_template`` from ``render_approved``? That module pulls
+Why not import the PDF renderer from ``render_approved``? That module pulls
 in ``gspread`` and ``weasyprint`` at import time. Keeping the preview path
-independent means the UI can boot without those dependencies installed.
+independent means the UI can boot without those dependencies installed. HTML
+generation itself is shared via ``pipeline.cv_render``.
 """
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Optional
 
+from pipeline.cv_render import render_html
 from ui.services import cv_template_choice, tailored_cv
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES_DIR = REPO_ROOT / "templates"
-
-
-def _template_path(choice: str) -> Path:
-    normalised = choice.lower() if choice else "a"
-    if normalised not in cv_template_choice.VALID:
-        normalised = cv_template_choice.DEFAULT
-    return TEMPLATES_DIR / f"cv_template_{normalised}.html"
-
-
-def _fill(template_html: str, data: dict) -> str:
-    html = template_html
-    for key, value in data.items():
-        placeholder = "{{" + str(key) + "}}"
-        if isinstance(value, list):
-            rendered = ", ".join(str(item) for item in value)
-        else:
-            rendered = "" if value is None else str(value)
-        html = html.replace(placeholder, rendered)
-    html = re.sub(r"{{[^}]+}}", "", html)
-    return html
 
 
 _OVERFLOW_SCRIPT = """
@@ -93,7 +74,5 @@ def render_preview_html(
     if template_choice is None:
         template_choice = cv_template_choice.get_choice(output_folder)
 
-    path = _template_path(template_choice)
-    template_html = path.read_text(encoding="utf-8")
-    filled = _fill(template_html, data or {})
+    filled = render_html(data or {}, template_choice)
     return _inject_overflow_script(filled, job_id)

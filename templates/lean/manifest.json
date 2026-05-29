@@ -1,0 +1,19 @@
+{
+  "id": "lean",
+  "label": "Lean (mass apply / hospitality)",
+  "sections": {
+    "objective": true,
+    "education": {
+      "max": 1
+    },
+    "certifications": false,
+    "projects": false,
+    "leadership": false,
+    "experience": {
+      "max": 3
+    },
+    "skills_columns": false,
+    "skill_tags": true,
+    "languages": true
+  }
+}

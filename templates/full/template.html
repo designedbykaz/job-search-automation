@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ identity.name }} - CV</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; margin: 1.5rem; }
+    h1 { font-size: 18pt; margin: 0; }
+    h2 { font-size: 12pt; border-bottom: 1px solid #999; margin: 1rem 0 0.4rem; }
+    h3 { font-size: 11pt; margin: 0.5rem 0 0.2rem; }
+    .contact { color: #444; margin: 0.2rem 0 0.6rem; }
+    ul { margin: 0.2rem 0 0.4rem 1.2rem; padding: 0; }
+    .columns { display: flex; gap: 1rem; }
+    .columns > article { flex: 1; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ identity.name }}</h1>
+    {% if identity.title %}<p>{{ identity.title }}</p>{% endif %}
+    <p class="contact">{{ identity.location }} | {{ identity.phone }} | {{ identity.email }} | {{ identity.linkedin }}</p>
+  </header>
+
+  {% if objective %}
+  <section class="section objective">
+    <h2>Objective</h2>
+    <p>{{ objective }}</p>
+  </section>
+  {% endif %}
+
+  {% if education %}
+  <section class="section education">
+    <h2>Education</h2>
+    {% for edu in education %}
+    <article>
+      <h3>{{ edu.institution }}</h3>
+      <p>{{ edu.subline }} | {{ edu.dates }}</p>
+      <p><strong>{{ edu.qualification }}</strong></p>
+      {% if edu.details %}
+      <ul>{% for detail in edu.details %}<li>{{ detail }}</li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if certifications %}
+  <section class="section certifications">
+    <h2>Certifications</h2>
+    <ul>{% for cert in certifications %}<li>{{ cert }}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  {% if projects %}
+  <section class="section projects">
+    <h2>Projects</h2>
+    {% for project in projects %}
+    <article>
+      <h3>{{ project.title }}</h3>
+      {% if project.stack and manifest.sections.projects is mapping and manifest.sections.projects.show_stack %}
+      <p>{{ project.stack }}</p>
+      {% endif %}
+      {% if project.bullets %}
+      <ul>{% for bullet in project.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if leadership %}
+  <section class="section leadership">
+    <h2>Leadership Experience</h2>
+    {% for item in leadership %}
+    <article>
+      <h3>{{ item.org }} | {{ item.role }} {{ item.dates }}</h3>
+      {% if item.bullets %}
+      <ul>{% for bullet in item.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if experience %}
+  <section class="section experience">
+    <h2>Work Experience</h2>
+    {% for item in experience %}
+    <article>
+      <h3>{{ item.company }} | {{ item.role }} {{ item.dates }}</h3>
+      {% if item.bullets %}
+      <ul>{% for bullet in item.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if skills_columns %}
+  <section class="section skills">
+    <h2>Professional Skills</h2>
+    <div class="columns">
+      {% for col in skills_columns %}
+      <article>
+        <h3>{{ col.heading }}</h3>
+        {% if col.bullets %}
+        <ul>{% for bullet in col.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if skill_tags %}
+  <section class="section skill-tags">
+    <h2>Skills</h2>
+    <p>{{ skill_tags | join_list }}</p>
+  </section>
+  {% endif %}
+
+  {% if languages %}
+  <section class="section languages">
+    <h2>Additional Languages</h2>
+    <p>{{ languages | join_list }}</p>
+  </section>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,111 @@
+{
+  "identity": {
+    "name": "Kazbek Kandour",
+    "title": "Product Design BSc (2:1) Graduate",
+    "location": "London, UK",
+    "phone": "+44 7841 979 687",
+    "email": "designedbykaz@outlook.com",
+    "linkedin": "linkedin.com/in/kazbek-kandour"
+  },
+  "objective": "Motivated Product Design graduate with experience across analytics, user-centred design, and practical prototyping.",
+  "education": [
+    {
+      "institution": "University of Leeds",
+      "subline": "Mechanical Engineering",
+      "dates": "2022\u20132025",
+      "qualification": "BSc Product Design (2:1)",
+      "details": [
+        "Materials Science",
+        "Rapid Prototyping",
+        "Human-Computer Interaction"
+      ]
+    },
+    {
+      "institution": "Bayes Business School",
+      "subline": "City University London",
+      "dates": "2018\u20132021",
+      "qualification": "CertHE (Merit): Business Management",
+      "details": [
+        "Financial and Management Accounting",
+        "Innovation Management"
+      ]
+    },
+    {
+      "institution": "Harrow School",
+      "subline": "London",
+      "dates": "2013\u20132018",
+      "qualification": "A Levels: A*A*C",
+      "details": [
+        "Economics",
+        "Politics",
+        "Maths"
+      ]
+    }
+  ],
+  "certifications": [
+    "StepFunction Data Analytics Programme, 2019 \u2014 Python, SQL, Tableau",
+    "BrainStation UX Designer Nanodegree, 2025 \u2014 UX Research, IA, Figma UI Design"
+  ],
+  "projects": [
+    {
+      "title": "Job Application Automation Pipeline using Python",
+      "stack": "Python, BeautifulSoup, WeasyPrint, API workflows, HTML/CSS",
+      "bullets": [
+        "Built a pipeline that scrapes UK job boards, filters listings, logs results, and generates tailored CVs and cover letters.",
+        "Integrated web scraping, API workflows, templating, shell scripting, and PDF generation."
+      ]
+    }
+  ],
+  "leadership": [
+    {
+      "role": "President",
+      "org": "Product Design Society, University of Leeds Union",
+      "dates": "2024\u20132025",
+      "bullets": [
+        "Chaired committee meetings, led event planning, and produced the annual report."
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "role": "Freelance Designer",
+      "company": "SIFFA Media",
+      "dates": "2025\u2013Present",
+      "bullets": [
+        "Delivered visual assets for the SIFFA Film Festival and supported branding work."
+      ]
+    }
+  ],
+  "skills_columns": [
+    {
+      "heading": "Structured Problem Solving",
+      "bullets": [
+        "Decomposes ambiguous briefs into testable components."
+      ]
+    },
+    {
+      "heading": "Self-Direction and Initiative",
+      "bullets": [
+        "Self-directed across study, freelance work, and personal projects."
+      ]
+    },
+    {
+      "heading": "Adaptability Across Spheres",
+      "bullets": [
+        "Moves between creative, engineering, commercial, and live performance contexts."
+      ]
+    }
+  ],
+  "skill_tags": [
+    "Python",
+    "SQL",
+    "Tableau",
+    "Figma",
+    "SolidWorks"
+  ],
+  "languages": [
+    "Russian (Near-Fluent)",
+    "Arabic (Intermediate)",
+    "Circassian (Native)"
+  ]
+}
