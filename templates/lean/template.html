@@ -1,22 +1,104 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>{{ identity.name }} - CV</title>
   <style>
-    body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; margin: 1.5rem; }
-    h1 { font-size: 18pt; margin: 0; }
-    h2 { font-size: 12pt; border-bottom: 1px solid #999; margin: 1rem 0 0.4rem; }
-    h3 { font-size: 11pt; margin: 0.5rem 0 0.2rem; }
-    .contact { color: #444; margin: 0.2rem 0 0.6rem; }
-    ul { margin: 0.2rem 0 0.4rem 1.2rem; padding: 0; }
+    /* ---- Page geometry: A4, ~13mm side margins, matching the full template ---- */
+    @page {
+      size: A4;
+      margin: 14mm 14mm 12mm 14mm;
+    }
+
+    /* ---- Base typography: same safe sans stack as the full template ---- */
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.4;
+      color: #1a1a1a;
+    }
+    p { margin: 0 0 4pt; }
+
+    /* ---- Header: name prominent here, since lean has room to breathe ---- */
+    .header-name {
+      font-size: 17pt;
+      font-weight: 700;
+      letter-spacing: 0.2pt;
+      margin: 0;
+    }
+    .header-title {
+      font-size: 10.5pt;
+      font-weight: 400;
+      color: #333;
+      margin: 2pt 0 0;
+    }
+    .contact {
+      font-size: 9pt;
+      color: #444;
+      margin: 4pt 0 0;
+    }
+
+    /* ---- Section scaffolding: same small uppercase label + hairline rule as full ---- */
+    .section { margin-top: 13pt; }
+    .section > h2 {
+      font-size: 8.4pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2pt;
+      color: #000;
+      margin: 0 0 5pt;
+      padding-bottom: 2.5pt;
+      border-bottom: 0.6pt solid #111;
+    }
+
+    /* ---- Entry blocks (single column, no multi-column bands in lean) ---- */
+    article { margin: 0 0 7pt; }
+    article:last-child { margin-bottom: 0; }
+    .entry-head {
+      font-size: 10pt;
+      font-weight: 700;
+      margin: 0 0 1pt;
+    }
+    .entry-head .meta {
+      font-weight: 400;
+      color: #444;
+    }
+
+    .edu-sub {
+      font-size: 9pt;
+      color: #444;
+      margin: 0 0 1pt;
+    }
+    .edu-qual {
+      font-weight: 700;
+      margin: 0 0 1pt;
+    }
+    .edu-detail {
+      font-size: 9pt;
+      color: #333;
+      margin: 0 0 1pt;
+    }
+
+    ul {
+      margin: 2pt 0 0;
+      padding-left: 13pt;
+    }
+    li { margin: 0 0 2.5pt; }
+
+    .strip { margin: 0; }
   </style>
 </head>
 <body>
   <header>
-    <h1>{{ identity.name }}</h1>
-    {% if identity.title %}<p>{{ identity.title }}</p>{% endif %}
-    <p class="contact">{{ identity.location }} | {{ identity.phone }} | {{ identity.email }} | {{ identity.linkedin }}</p>
+    <h1 class="header-name">{{ identity.name }}</h1>
+    {% if identity.title %}<p class="header-title">{{ identity.title }}</p>{% endif %}
+    <p class="contact">
+      {{ identity.location }} | {{ identity.phone }} | {{ identity.email }} | linkedin.com/in/{{ identity.linkedin }}
+    </p>
   </header>
 
   {% if objective %}
@@ -31,9 +113,10 @@
     <h2>Education</h2>
     {% for edu in education %}
     <article>
-      <h3>{{ edu.institution }}</h3>
-      <p>{{ edu.subline }} | {{ edu.dates }}</p>
-      <p><strong>{{ edu.qualification }}</strong></p>
+      <p class="entry-head">{{ edu.institution }}</p>
+      {% if edu.subline or edu.dates %}<p class="edu-sub">{{ edu.subline }}{% if edu.subline and edu.dates %}, {% endif %}{{ edu.dates }}</p>{% endif %}
+      {% if edu.qualification %}<p class="edu-qual">{{ edu.qualification }}</p>{% endif %}
+      {% for detail in edu.details %}<p class="edu-detail">{{ detail }}</p>{% endfor %}
     </article>
     {% endfor %}
   </section>
@@ -44,7 +127,7 @@
     <h2>Work Experience</h2>
     {% for item in experience %}
     <article>
-      <h3>{{ item.company }} | {{ item.role }} {{ item.dates }}</h3>
+      <p class="entry-head">{{ item.company }} <span class="meta">| {{ item.role }}{% if item.dates %} | {{ item.dates }}{% endif %}</span></p>
       {% if item.bullets %}
       <ul>{% for bullet in item.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
       {% endif %}
@@ -56,14 +139,14 @@
   {% if skill_tags %}
   <section class="section skill-tags">
     <h2>Skills</h2>
-    <p>{{ skill_tags | join_list }}</p>
+    <p class="strip">{{ skill_tags | join_list }}</p>
   </section>
   {% endif %}
 
   {% if languages %}
   <section class="section languages">
     <h2>Additional Languages</h2>
-    <p>{{ languages | join_list }}</p>
+    <p class="strip">{{ languages | join_list }}</p>
   </section>
   {% endif %}
 </body>
