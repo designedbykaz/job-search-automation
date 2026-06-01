@@ -24,9 +24,7 @@ When you approve a job in the UI, the disk index updates instantly and the Sheet
 
 The pipeline has two entry points (cluster search and open search) that converge after scraping. The disk index is the source of truth; the Google Sheet is a mobile-friendly sidecar. CV editing preserves the original tailored JSON so a user edit can always be reverted.
 
-### **Data flow:** 
-
-**from scrape to rendered PDF** 
+### Data flow: scrape to rendered PDF
 
 
 
@@ -97,7 +95,7 @@ Open `http://127.0.0.1:5000` in your browser.
 
 ### Terminal commands
 
-Full v1 pipeline (scrape, dedup, filter, tailor, log):
+Full batch pipeline: scrape, dedup, filter, then run the tailoring engine (CV and cover letter) for every scraped job, then log. This makes many API calls and triggers a live scrape, so the UI's approve-per-job flow is usually preferred:
 
 ```
 python main.py --mode full
@@ -109,7 +107,7 @@ Scrape only, no Claude API spend:
 python main.py --mode scrape
 ```
 
-Render PDFs for approved jobs (v1 batch renderer):
+Render PDFs for approved jobs (batch renderer, uses the shared render service):
 
 ```
 python render_approved.py
