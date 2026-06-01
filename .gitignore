@@ -20,6 +20,7 @@ ui/sample_outputs/**/cv_tailored_edited.json
 # Run page operator config; .example siblings are committed
 config/scrapers.json
 config/clusters.json
+config/cluster_mappings.json
 .claude/
 .idea/
 # Local reference / experiments (not part of the app)
