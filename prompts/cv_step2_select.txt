@@ -18,6 +18,12 @@ history, with its identity, section, title, first line, and source tier. You may
 ONLY select identities that appear in this index. Never invent an identity.
 {{CONTENT_INDEX}}
 
+Declared priors for this kind of role (optional, may be empty). These are a
+human's prior view of which items tend to fit, by identity. Treat them as a
+nudge and a tie-breaker, not a rule: the rubric and the actual content still
+govern, and you may overrule a prior when the evidence says so:
+{{PRIORS}}
+
 Do two things:
 
 1. For each section in the slot counts, select the items that best satisfy the

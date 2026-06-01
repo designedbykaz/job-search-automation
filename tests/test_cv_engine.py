@@ -239,3 +239,31 @@ def test_collect_reservoir_pulls_pools(master_profile):
     pools = cv_engine.collect_reservoir(master_profile)
     assert pools["soft_skills"] == ["Adaptable across environments."]
     assert pools["technical_skills"]["cad"] == ["SolidWorks"]
+
+
+def test_mapping_threads_into_prompts(base, master_profile):
+    mapping = {
+        "narrative_hint": "LEAD WITH DESIGN CRAFT",
+        "experience_priority": ["siffa"],
+        "deprioritise": ["ashtar"],
+        "project_emphasis": ["pill_pod"],
+        "skills_emphasis": ["ui_ux"],
+        "default_template": "full",
+    }
+    caller = SequenceCaller([json.dumps(STEP1), json.dumps(STEP2), json.dumps(STEP3)])
+    cv_engine.run_engine(
+        {"title": "x", "employer": "", "description": ""},
+        base=base, master_profile=master_profile, template_id="full", caller=caller, mapping=mapping,
+    )
+    step1_prompt, step2_prompt, step3_prompt = caller.prompts
+    assert "LEAD WITH DESIGN CRAFT" in step1_prompt
+    assert "LEAD WITH DESIGN CRAFT" in step3_prompt
+    assert "experience_priority" in step2_prompt and "siffa" in step2_prompt
+    assert "deprioritise" in step2_prompt and "ashtar" in step2_prompt
+
+
+def test_no_mapping_leaves_no_unfilled_placeholders(base, master_profile):
+    _, _, caller = _engine(base, master_profile, [STEP1, STEP2, STEP3])
+    joined = "".join(caller.prompts)
+    assert "{{NARRATIVE_HINT}}" not in joined
+    assert "{{PRIORS}}" not in joined

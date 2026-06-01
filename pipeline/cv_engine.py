@@ -100,6 +100,21 @@ def _slot_caps(manifest: dict) -> dict:
     return caps
 
 
+def _narrative_hint(mapping: Optional[dict]) -> str:
+    return (mapping or {}).get("narrative_hint", "") or ""
+
+
+def _priors(mapping: Optional[dict]) -> dict:
+    """The cluster mapping's bias lists, for the selection step's prompt."""
+    m = mapping or {}
+    return {
+        "experience_priority": m.get("experience_priority", []),
+        "deprioritise": m.get("deprioritise", []),
+        "project_emphasis": m.get("project_emphasis", []),
+        "skills_emphasis": m.get("skills_emphasis", []),
+    }
+
+
 def collect_reservoir(master_profile: dict) -> dict:
     """Pull the non-identity reservoir pools Step 3 draws on for objective,
     skills_columns and skill_tags. These fields are not single items, so the
@@ -119,7 +134,7 @@ def collect_reservoir(master_profile: dict) -> dict:
 # --- the three steps -----------------------------------------------------
 
 
-def run_step1(job: dict, manifest: dict, caller: Caller) -> dict:
+def run_step1(job: dict, manifest: dict, caller: Caller, mapping: Optional[dict] = None) -> dict:
     """Analysis and rubric. Returns ``{jd_profile, rubric}``."""
     prompt = (
         load_prompt("cv_step1_analysis.txt")
@@ -127,11 +142,14 @@ def run_step1(job: dict, manifest: dict, caller: Caller) -> dict:
         .replace("{{EMPLOYER}}", job.get("employer", ""))
         .replace("{{JOB_DESCRIPTION}}", job.get("description", ""))
         .replace("{{SLOT_CAPS}}", _dump(_slot_caps(manifest)))
+        .replace("{{NARRATIVE_HINT}}", _narrative_hint(mapping))
     )
     return _parse_json(caller(prompt, max_tokens=_STEP1_MAX_TOKENS), "analysis")
 
 
-def run_step2(rubric: dict, index: list[dict], manifest: dict, caller: Caller) -> dict:
+def run_step2(
+    rubric: dict, index: list[dict], manifest: dict, caller: Caller, mapping: Optional[dict] = None
+) -> dict:
     """Select, rank, gap report. Returns ``{selection, gaps}``.
 
     ``selection`` maps each enabled tailored section to a list of
@@ -144,6 +162,7 @@ def run_step2(rubric: dict, index: list[dict], manifest: dict, caller: Caller) -
         .replace("{{RUBRIC}}", _dump(rubric))
         .replace("{{SLOT_CAPS}}", _dump(caps))
         .replace("{{CONTENT_INDEX}}", _dump(selectable))
+        .replace("{{PRIORS}}", _dump(_priors(mapping)))
     )
     return _parse_json(caller(prompt, max_tokens=_STEP2_MAX_TOKENS), "select")
 
@@ -155,6 +174,7 @@ def run_step3(
     reservoir: dict,
     manifest: dict,
     caller: Caller,
+    mapping: Optional[dict] = None,
 ) -> dict:
     """Grounded synthesis. Returns ``{objective, bullets, skills_columns,
     skill_tags}`` where ``bullets`` maps a selected identity to its generated
@@ -167,6 +187,7 @@ def run_step3(
         .replace("{{SELECTED_CONTENT}}", _dump(selected_content))
         .replace("{{RESERVOIR}}", _dump(reservoir))
         .replace("{{SLOT_CAPS}}", _dump(_slot_caps(manifest)))
+        .replace("{{NARRATIVE_HINT}}", _narrative_hint(mapping))
     )
     return _parse_json(caller(prompt, max_tokens=_STEP3_MAX_TOKENS), "synthesis")
 
@@ -274,21 +295,24 @@ def run_engine(
     template_id: str,
     caller: Caller = _default_caller,
     vault_dir=None,
+    mapping: Optional[dict] = None,
 ) -> tuple[dict, dict]:
     """Run the three-step engine and return ``(cv, report)``.
 
     ``cv`` is the structured, schema-valid tailored CV merged over the floor.
     ``report`` carries the rubric, the cleaned selection, the gap report and a
-    per-item source-tier provenance map, for review. Raises
-    ``EngineParseError`` if any step returns unparseable JSON.
+    per-item source-tier provenance map, for review. ``mapping`` is the optional
+    cluster prior layer (narrative hint and favour/deprioritise lists); when
+    absent the engine runs unbiased. Raises ``EngineParseError`` if any step
+    returns unparseable JSON.
     """
     manifest = load_manifest(template_id)
     caps = _slot_caps(manifest)
     index = build_content_index(master_profile=master_profile, base=base, vault_dir=vault_dir)
     reservoir = collect_reservoir(master_profile)
 
-    step1 = run_step1(job, manifest, caller)
-    step2 = run_step2(step1, index, manifest, caller)
+    step1 = run_step1(job, manifest, caller, mapping)
+    step2 = run_step2(step1, index, manifest, caller, mapping)
 
     resolved_map, ordered = _resolve_selected(
         step2.get("selection") or {},
@@ -299,7 +323,7 @@ def run_engine(
     )
     selected_content = _selected_content(ordered, resolved_map)
 
-    step3 = run_step3(step1, ordered, selected_content, reservoir, manifest, caller)
+    step3 = run_step3(step1, ordered, selected_content, reservoir, manifest, caller, mapping)
 
     bullets = step3.get("bullets") or {}
     tailored = {

@@ -18,6 +18,10 @@ The CV template being targeted has these tailored slot counts (a section maps to
 the number of items it can hold; null means uncapped):
 {{SLOT_CAPS}}
 
+A strategy note for this kind of role (optional, may be empty). It is a human
+view of how to pitch this candidate. Weigh it, but the job description governs:
+{{NARRATIVE_HINT}}
+
 Produce two things:
 
 1. A structured profile of the job: its hard requirements, its main

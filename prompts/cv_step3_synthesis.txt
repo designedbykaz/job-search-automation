@@ -31,6 +31,10 @@ The reservoir pools, for the non-item fields only (objective, skills_columns,
 skill_tags). Draw on these and the selected content; do not invent:
 {{RESERVOIR}}
 
+A strategy note for framing (optional, may be empty). Let it shape emphasis and
+tone, never facts:
+{{NARRATIVE_HINT}}
+
 The tailored slot counts (section to maximum items; null means uncapped):
 {{SLOT_CAPS}}
 

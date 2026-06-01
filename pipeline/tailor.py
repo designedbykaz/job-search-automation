@@ -38,19 +38,61 @@ def save_json(data, filepath):
 
 
 def _read_template_choice(output_folder):
-    """Read the per-job CV template choice (``a``/``b``/``c``), defaulting to
-    ``c``. Mirrors ``ui.services.cv_template_choice`` and is kept inline so the
-    pipeline layer has no dependency on the UI layer. Keep the two in step.
+    """Read the explicit per-job CV template choice (``a``/``b``/``c``), or
+    ``None`` if the job has no choice file. Mirrors the file convention of
+    ``ui.services.cv_template_choice`` (kept inline so the pipeline layer has no
+    UI dependency), but returns ``None`` rather than defaulting, so the caller
+    can fall back to the cluster's default template. Keep the two in step.
     """
     path = Path(output_folder) / "cv_template_choice.json"
     if not path.is_file():
-        return "c"
+        return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (ValueError, OSError):
-        return "c"
-    choice = str(data.get("template", "c")).lower()
-    return choice if choice in ("a", "b", "c") else "c"
+        return None
+    choice = str(data.get("template", "")).lower()
+    return choice if choice in ("a", "b", "c") else None
+
+
+def _read_cluster_for_folder(output_folder, index_path=None):
+    """Resolve a job's cluster id (``CLU_N``) from the disk index, or ``None``.
+
+    The index (``outputs/_index.json``) is the source of truth and stores each
+    job's stable cluster id and its repo-relative output folder. We match the
+    entry whose output folder resolves to the same absolute path as
+    ``output_folder``. Fail-soft: any missing file, parse error, or no match
+    yields ``None`` so tailoring is never blocked. Never touches the network.
+    """
+    repo_root = Path(__file__).resolve().parents[1]
+    path = Path(index_path) if index_path is not None else repo_root / "outputs" / "_index.json"
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+    jobs = data.get("jobs") if isinstance(data, dict) else None
+    entries = jobs.values() if isinstance(jobs, dict) else jobs if isinstance(jobs, list) else []
+    try:
+        target = Path(output_folder).resolve()
+    except (OSError, ValueError):
+        return None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        folder = entry.get("output_folder")
+        if not folder:
+            continue
+        candidate = Path(folder)
+        if not candidate.is_absolute():
+            candidate = repo_root / candidate
+        try:
+            if candidate.resolve() == target:
+                return entry.get("cluster") or None
+        except (OSError, ValueError):
+            continue
+    return None
 
 
 def tailor_cv(job, output_folder):
@@ -69,8 +111,17 @@ def tailor_cv(job, output_folder):
 
         from pipeline.cv_engine import run_engine, EngineParseError
         from pipeline.cv_render import resolve_template_id
+        from pipeline import cluster_map
 
-        template_id = resolve_template_id(_read_template_choice(output_folder))
+        cluster_id = _read_cluster_for_folder(output_folder)
+        mapping = cluster_map.get_mapping(cluster_id)
+
+        # Template precedence: explicit per-job choice, else the cluster's
+        # default template, else (via get_mapping defaults) plain.
+        explicit_choice = _read_template_choice(output_folder)
+        template_id = resolve_template_id(
+            explicit_choice if explicit_choice is not None else mapping["default_template"]
+        )
 
         try:
             tailored, report = run_engine(
@@ -78,6 +129,7 @@ def tailor_cv(job, output_folder):
                 base=base_cv,
                 master_profile=master_profile,
                 template_id=template_id,
+                mapping=mapping,
             )
         except EngineParseError as exc:
             output_folder.mkdir(parents=True, exist_ok=True)
