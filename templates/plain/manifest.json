@@ -1,0 +1,28 @@
+{
+  "id": "plain",
+  "label": "Plain (copy-paste friendly)",
+  "sections": {
+    "objective": true,
+    "education": {
+      "max": 10
+    },
+    "certifications": {
+      "max": 10
+    },
+    "projects": {
+      "max": 10,
+      "show_stack": true
+    },
+    "leadership": {
+      "max": 10
+    },
+    "experience": {
+      "max": 10
+    },
+    "skills_columns": {
+      "max": 10
+    },
+    "skill_tags": true,
+    "languages": true
+  }
+}

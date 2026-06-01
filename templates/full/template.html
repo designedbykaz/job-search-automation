@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ identity.name }} - CV</title>
+  <style>
+    /* ---- Page geometry: A4, ~13mm side margins per the coordinate guide ---- */
+    @page {
+      size: A4;
+      margin: 11mm 13mm 10mm 13mm;
+    }
+
+    /* ---- Base typography: safe, well-hinted sans WeasyPrint renders reliably ---- */
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
+      font-size: 8pt;
+      line-height: 1.32;
+      color: #1a1a1a;
+    }
+    p { margin: 0 0 3pt; }
+
+    /* ---- Header ---- */
+    .header-name {
+      font-size: 9.5pt;
+      font-weight: 700;
+      letter-spacing: 0.2pt;
+      margin: 0;
+    }
+    .header-title {
+      font-size: 9.5pt;
+      font-weight: 400;
+      color: #333;
+      margin: 1pt 0 0;
+    }
+    .contact {
+      font-size: 8.2pt;
+      color: #444;
+      margin: 3pt 0 0;
+    }
+
+    /* ---- Section scaffolding: small uppercase label + hairline rule ---- */
+    .section { margin-top: 9pt; }
+    .section > h2 {
+      font-size: 7.4pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.1pt;
+      color: #000;
+      margin: 0 0 4pt;
+      padding-bottom: 2pt;
+      border-bottom: 0.6pt solid #111;
+    }
+
+    /* ---- Entry blocks (projects, leadership, experience) ---- */
+    article { margin: 0 0 5pt; }
+    article:last-child { margin-bottom: 0; }
+    .entry-head {
+      font-size: 8.8pt;
+      font-weight: 700;
+      margin: 0 0 1pt;
+    }
+    .entry-head .meta {
+      font-weight: 400;
+      color: #444;
+    }
+    .stack {
+      font-size: 8pt;
+      font-style: italic;
+      color: #555;
+      margin: 0 0 2pt;
+    }
+
+    ul {
+      margin: 1pt 0 0;
+      padding-left: 11pt;
+    }
+    li { margin: 0 0 1.5pt; }
+
+    /* ---- Three-column band, used by education and skills ---- */
+    .columns {
+      display: flex;
+      gap: 10pt;
+    }
+    .columns > .col {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .col-head {
+      font-size: 8.6pt;
+      font-weight: 700;
+      margin: 0 0 1pt;
+    }
+    .col-sub {
+      font-size: 8pt;
+      color: #444;
+      margin: 0 0 1pt;
+    }
+    .col-qual {
+      font-size: 8pt;
+      font-weight: 700;
+      margin: 0 0 1pt;
+    }
+    .col-detail {
+      font-size: 7.9pt;
+      color: #333;
+      margin: 0 0 1pt;
+    }
+
+    .inline-list { margin: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 class="header-name">{{ identity.name }}</h1>
+    {% if identity.title %}<p class="header-title">{{ identity.title }}</p>{% endif %}
+    <p class="contact">
+      {{ identity.location }} | {{ identity.phone }} | {{ identity.email }} | linkedin.com/in/{{ identity.linkedin }}
+    </p>
+  </header>
+
+  {% if objective %}
+  <section class="section objective">
+    <h2>Objective</h2>
+    <p>{{ objective }}</p>
+  </section>
+  {% endif %}
+
+  {% if education %}
+  <section class="section education">
+    <h2>Education</h2>
+    <div class="columns">
+      {% for edu in education %}
+      <div class="col">
+        <p class="col-head">{{ edu.institution }}</p>
+        {% if edu.subline or edu.dates %}<p class="col-sub">{{ edu.subline }}{% if edu.subline and edu.dates %}, {% endif %}{{ edu.dates }}</p>{% endif %}
+        {% if edu.qualification %}<p class="col-qual">{{ edu.qualification }}</p>{% endif %}
+        {% for detail in edu.details %}<p class="col-detail">{{ detail }}</p>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if certifications %}
+  <section class="section certifications">
+    <h2>Certifications</h2>
+    <ul>{% for cert in certifications %}<li>{{ cert }}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  {% if projects %}
+  <section class="section projects">
+    <h2>Projects</h2>
+    {% for project in projects %}
+    <article>
+      <p class="entry-head">{{ project.title }}</p>
+      {% if project.stack and manifest.sections.projects is mapping and manifest.sections.projects.show_stack %}
+      <p class="stack">{{ project.stack }}</p>
+      {% endif %}
+      {% if project.bullets %}
+      <ul>{% for bullet in project.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if leadership %}
+  <section class="section leadership">
+    <h2>Leadership Experience</h2>
+    {% for item in leadership %}
+    <article>
+      <p class="entry-head">{{ item.org }} <span class="meta">| {{ item.role }}{% if item.dates %} | {{ item.dates }}{% endif %}</span></p>
+      {% if item.bullets %}
+      <ul>{% for bullet in item.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if experience %}
+  <section class="section experience">
+    <h2>Work Experience</h2>
+    {% for item in experience %}
+    <article>
+      <p class="entry-head">{{ item.company }} <span class="meta">| {{ item.role }}{% if item.dates %} | {{ item.dates }}{% endif %}</span></p>
+      {% if item.bullets %}
+      <ul>{% for bullet in item.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if skills_columns %}
+  <section class="section skills">
+    <h2>Professional Skills</h2>
+    <div class="columns">
+      {% for col in skills_columns %}
+      <div class="col">
+        <p class="col-head">{{ col.heading }}</p>
+        {% if col.bullets %}
+        <ul class="inline-list">{% for bullet in col.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if skill_tags %}
+  <section class="section skill-tags">
+    <h2>Skills</h2>
+    <p>{{ skill_tags | join_list }}</p>
+  </section>
+  {% endif %}
+
+  {% if languages %}
+  <section class="section languages">
+    <h2>Additional Languages</h2>
+    <p>{{ languages | join_list }}</p>
+  </section>
+  {% endif %}
+</body>
+</html>

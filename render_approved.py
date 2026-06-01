@@ -2,13 +2,14 @@
 
 import json
 import os
-import re
 from pathlib import Path
 
 import gspread
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from weasyprint import HTML
+
+from pipeline.cv_render import render_html
 
 load_dotenv()
 
@@ -23,29 +24,6 @@ def get_sheet():
     client = gspread.authorize(creds)
     spreadsheet = client.open_by_key(sheet_id)
     return spreadsheet.sheet1
-
-
-def fill_template(tailored_cv_dict, template_path=None):
-    if template_path is None:
-        template_path = Path("templates") / "cv_template_a.html"
-    with open(template_path, "r", encoding="utf-8") as f:
-        html = f.read()
-
-    for key, value in tailored_cv_dict.items():
-        placeholder = f"{{{{{key}}}}}"
-        if isinstance(value, list):
-            value_str = ", ".join(str(item) for item in value)
-        else:
-            value_str = str(value)
-        html = html.replace(placeholder, value_str)
-
-    remaining = set(re.findall(r"{{([^}]+)}}", html))
-    if remaining:
-        print("Warning: Unreplaced placeholders found:")
-        for name in sorted(remaining):
-            print(f"- {{{{{name}}}}}")
-
-    return html
 
 
 def render_pdf(html_string, output_folder):
@@ -130,9 +108,8 @@ def render_approved():
                         choice = "a"
                 if choice not in ("a", "b", "c"):
                     choice = "a"
-                template_path = Path("templates") / f"cv_template_{choice}.html"
 
-                html_str = fill_template(tailored, template_path=template_path)
+                html_str = render_html(tailored, choice)
                 render_pdf(html_str, out_path)
 
                 job_url = row.get("Job URL", "")

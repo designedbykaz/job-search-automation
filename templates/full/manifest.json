@@ -1,0 +1,28 @@
+{
+  "id": "full",
+  "label": "Full (graduate scheme, detailed)",
+  "sections": {
+    "objective": true,
+    "education": {
+      "max": 3
+    },
+    "certifications": {
+      "max": 3
+    },
+    "projects": {
+      "max": 4,
+      "show_stack": true
+    },
+    "leadership": {
+      "max": 2
+    },
+    "experience": {
+      "max": 3
+    },
+    "skills_columns": {
+      "max": 3
+    },
+    "skill_tags": false,
+    "languages": true
+  }
+}
