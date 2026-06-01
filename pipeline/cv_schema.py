@@ -22,10 +22,13 @@ STRING_FIELDS = ("objective",)
 
 LIST_OF_STRINGS_FIELDS = ("certifications", "skill_tags", "languages")
 
-EDUCATION_FIELDS = ("institution", "subline", "dates", "qualification")
-PROJECT_FIELDS = ("title", "stack")
-LEADERSHIP_FIELDS = ("role", "org", "dates")
-EXPERIENCE_FIELDS = ("role", "company", "dates")
+# Object-array sections carry a stable ``id`` that joins a floor item to its
+# named identity in master_profile and the vault. The id is optional (absent
+# items normalise to ""), display-only sections like skills_columns have none.
+EDUCATION_FIELDS = ("id", "institution", "subline", "dates", "qualification")
+PROJECT_FIELDS = ("id", "title", "stack")
+LEADERSHIP_FIELDS = ("id", "role", "org", "dates")
+EXPERIENCE_FIELDS = ("id", "role", "company", "dates")
 SKILLS_COLUMN_FIELDS = ("heading",)
 
 

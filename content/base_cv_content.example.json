@@ -11,6 +11,7 @@
   "objective": "YOUR_OBJECTIVE_STATEMENT",
   "education": [
     {
+      "id": "primary_institution",
       "institution": "YOUR_UNIVERSITY",
       "subline": "DEPARTMENT_OR_LOCATION",
       "dates": "YYYY - YYYY",
@@ -28,6 +29,7 @@
   ],
   "projects": [
     {
+      "id": "project_1",
       "title": "PROJECT_TITLE",
       "stack": "TOOLS_AND_TECHNOLOGIES",
       "bullets": [
@@ -37,6 +39,7 @@
   ],
   "leadership": [
     {
+      "id": "leadership_role_1",
       "role": "YOUR_ROLE",
       "org": "ORGANISATION_NAME",
       "dates": "YYYY - YYYY",
@@ -47,6 +50,7 @@
   ],
   "experience": [
     {
+      "id": "employer_1",
       "role": "YOUR_JOB_TITLE",
       "company": "EMPLOYER_NAME, LOCATION",
       "dates": "Mon YYYY - Mon YYYY",
