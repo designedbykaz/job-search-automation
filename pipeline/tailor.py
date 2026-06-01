@@ -37,48 +37,66 @@ def save_json(data, filepath):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+def _read_template_choice(output_folder):
+    """Read the per-job CV template choice (``a``/``b``/``c``), defaulting to
+    ``c``. Mirrors ``ui.services.cv_template_choice`` and is kept inline so the
+    pipeline layer has no dependency on the UI layer. Keep the two in step.
+    """
+    path = Path(output_folder) / "cv_template_choice.json"
+    if not path.is_file():
+        return "c"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return "c"
+    choice = str(data.get("template", "c")).lower()
+    return choice if choice in ("a", "b", "c") else "c"
+
+
 def tailor_cv(job, output_folder):
     """
-    Produce tailored CV JSON from base + master profile + job; save under output_folder.
+    Produce tailored CV JSON via the three-call engine; save under output_folder.
+
+    The chosen template (read from the job's output folder, defaulting to plain)
+    gives the engine its slot caps. Output is the structured schema, merged over
+    the base CV floor. A secondary tailoring report (rubric, selection, gaps,
+    provenance) is written fail-soft alongside it. Signature and call site are
+    unchanged; only the internals are the new engine.
     """
     try:
         base_cv = load_json("content/base_cv_content.json")
         master_profile = load_json("content/master_profile.json")
-        prompt = load_prompt("cv_prompt.txt")
 
-        filled_prompt = prompt.replace("{{BASE_CV}}", json.dumps(base_cv, indent=2))
-        filled_prompt = filled_prompt.replace(
-            "{{MASTER_PROFILE}}", json.dumps(master_profile["cv"], indent=2)
-        )
-        filled_prompt = filled_prompt.replace("{{JOB_TITLE}}", job["title"])
-        filled_prompt = filled_prompt.replace("{{EMPLOYER}}", job.get("employer", ""))
-        filled_prompt = filled_prompt.replace(
-            "{{JOB_DESCRIPTION}}", job.get("description", "")
-        )
+        from pipeline.cv_engine import run_engine, EngineParseError
+        from pipeline.cv_render import resolve_template_id
 
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        message = client.messages.create(
-            model=os.getenv("CLAUDE_MODEL", "claude-opus-4-6"),
-            max_tokens=4096,
-            messages=[{"role": "user", "content": filled_prompt}],
-        )
-        text = message.content[0].text
-        cleaned = re.sub(r"```(?:json)?|```", "", text).strip()
+        template_id = resolve_template_id(_read_template_choice(output_folder))
 
         try:
-            tailored = json.loads(cleaned)
-        except json.JSONDecodeError:
-            raw_path = output_folder / "cv_tailored_raw.txt"
+            tailored, report = run_engine(
+                job,
+                base=base_cv,
+                master_profile=master_profile,
+                template_id=template_id,
+            )
+        except EngineParseError as exc:
             output_folder.mkdir(parents=True, exist_ok=True)
+            raw_path = output_folder / "cv_tailored_raw.txt"
             with open(raw_path, "w", encoding="utf-8") as f:
-                f.write(text)
+                f.write(exc.raw)
             raise ValueError(
-                "API response could not be parsed as JSON after stripping code fences. "
-                f"Raw response saved to {raw_path}."
+                f"Engine step {exc.step!r} returned unparseable JSON after stripping "
+                f"code fences. Raw response saved to {raw_path}."
             ) from None
 
         out_path = output_folder / "cv_tailored.json"
         save_json(tailored, out_path)
+
+        # Secondary, fail-soft: a report never blocks the primary CV write.
+        try:
+            save_json(report, output_folder / "cv_tailoring_report.json")
+        except Exception as report_exc:
+            print(f"Warning: failed to write tailoring report: {report_exc!r}")
 
         print(f"CV tailored for: {job['title']} at {job.get('employer', '')}")
         return tailored
