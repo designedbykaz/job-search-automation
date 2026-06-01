@@ -178,7 +178,10 @@ def _record(
         "tier": tier,
         "substantial": substantial,
         "facts": _facts_from_floor(floor_item, section),
+        # The richest source body, for synthesis input.
         "body": list(body),
+        # The floor's verified bullets, the safe fallback for final output.
+        "floor_body": _body_from_floor(floor_item, section),
     }
 
 

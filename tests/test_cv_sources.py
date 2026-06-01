@@ -176,6 +176,14 @@ def test_facts_travel_unchanged_from_floor(master_profile, base):
     }
 
 
+def test_floor_body_is_the_verified_fallback(master_profile, base):
+    # body is the richer master_profile source; floor_body is the floor's bullets.
+    r = cv_sources.resolve_item("siffa", "experience", master_profile=master_profile, base=base)
+    assert r["tier"] == cv_sources.TIER_MASTER_PROFILE
+    assert r["body"][0] == LONG
+    assert r["floor_body"] == ["A floor bullet about the SIFFA festival design work."]
+
+
 # --- vault tier ----------------------------------------------------------
 
 
