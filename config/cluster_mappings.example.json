@@ -1,0 +1,23 @@
+{
+  "_readme": "Copy this file to config/cluster_mappings.json (which is gitignored). Per-cluster priors for the CV tailoring engine, keyed by the CLU_N ids in clusters.json. Every field is optional; missing fields fall back to 'defaults'. These bias the engine, they do not lock its decisions. experience_priority, deprioritise, and project_emphasis use your floor item ids (the 'id' on each base_cv_content item). skills_emphasis uses your master_profile technical_skills pool keys. default_template is full, lean, or plain.",
+  "defaults": {
+    "default_template": "plain",
+    "narrative_hint": "",
+    "experience_priority": [],
+    "deprioritise": [],
+    "project_emphasis": [],
+    "skills_emphasis": [],
+    "note": ""
+  },
+  "clusters": {
+    "CLU_1": {
+      "default_template": "full",
+      "narrative_hint": "One sentence framing how to pitch the candidate for this cluster of roles.",
+      "experience_priority": ["IDENTITY_TO_LEAD_WITH", "NEXT_IDENTITY"],
+      "deprioritise": ["IDENTITY_TO_PUSH_DOWN"],
+      "project_emphasis": ["PROJECT_IDENTITY"],
+      "skills_emphasis": ["SKILL_POOL_KEY"],
+      "note": "Optional free-text reminder of the strategy for this cluster."
+    }
+  }
+}
