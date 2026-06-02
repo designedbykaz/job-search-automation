@@ -37,12 +37,14 @@ flowchart TD
     OS --> SCRAPE
     SCRAPE --> DEDUP[deduplicate]
     DEDUP -->|cluster path| FILTER[filter_by_keywords]
-    FILTER --> FOLDERS[create_output_folders]
+    FILTER --> SEEN[skip URLs already in index]
+    SEEN --> FOLDERS[create_output_folders]
     DEDUP -->|open search| FOLDERS
     FOLDERS --> JOBJSON[(job.json on disk)]
-    JOBJSON --> SHEET[(Sheet row<br/>mirror, fail-soft)]
-    JOBJSON --> SYNC[rebuild index + sync]
+    JOBJSON --> SHEET[(Sheet row<br/>downstream log, fail-soft)]
+    JOBJSON --> SYNC[rebuild index from disk]
     SYNC --> INDEX[(outputs/_index.json<br/>source of truth)]
+    INDEX -.dedup check.-> SEEN
     INDEX --> JOBS["/jobs page"]
     JOBS --> ACTION{user action}
     ACTION -->|delete| DEL[job removed]
@@ -73,7 +75,7 @@ flowchart TD
 
 ### Key design decisions
 
-- **Disk index is the source of truth.** `outputs/_index.json` is authoritative. The Google Sheet is updated write-through but reading the index never goes to the network.
+- **Disk index is the source of truth.** `outputs/_index.json` is authoritative. Scrape dedup checks the index (by listing URL), not the Sheet, so the Sheet is a downstream log; clearing the index resets dedup. Reading the index never goes to the network.
 - **Stable IDs over labels.** Clusters use `CLU_N` identifiers that survive renames. The UI resolves IDs to human labels at display time.
 - **Pipeline functions are decoupled from the clusters service.** Scraping and filtering take cluster data as parameters; only the caller (the UI service or `main.py`) reads from `clusters.json`.
 - **Original tailored JSON is never overwritten.** `cv_tailored.json` is the Claude output; user edits go to `cv_tailored_edited.json`. Reset always has something to return to.
@@ -124,6 +126,13 @@ Rebuild the disk index from output folders (one-off utility, useful after manual
 
 ```
 python -m scripts.build_job_index
+```
+
+Clear the job store for a fresh-scrape clean slate: empties the index (backing it up to `outputs/_index.json.bak`) and deletes every job output folder. Because scrape dedup is index-based, this also resets dedup, so the next scrape treats all listings as new. Pass `--with-sheet` to also wipe the Sheet's data rows (header kept). This is the CLI counterpart of the planned "Clear all" UI button; both call `ui.services.reset.clear_all`:
+
+```
+python -m scripts.clear_job_index               # clear index + output folders
+python -m scripts.clear_job_index --with-sheet  # also wipe the Sheet's data rows
 ```
 
 ### Project structure
@@ -304,7 +313,8 @@ The files the engine reads, and how each is used. Real files are gitignored; a c
 - Re-render button: edit the tailored JSON and re-render over the existing PDF
 - Manual entry: add a job by hand for tailor-only use, without a scrape
 - Per-stage model selection: assign a different Claude model to each tailoring step, with a UI to switch
-- Cross-run dedup to prevent previously deleted jobs from returning in fresh scrapes
+- Remember dismissed/deleted jobs so they do not return on the next scrape (scrapes now dedup against the index, but a deleted job leaves the index, so it would be re-scraped)
+- Wire the clear-all reset (`ui.services.reset.clear_all`) to a "Clear all" button on the Jobs page
 - Background workers for long scrapes, with progress indicators
 - Archive button wiring and bulk actions on the Jobs page
 - Rename the Run page to Scraper

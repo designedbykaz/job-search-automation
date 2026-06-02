@@ -63,6 +63,77 @@ def test_list_jobs_returns_empty_when_no_index_file(index_env):
     assert job_index.list_jobs() == []
 
 
+def test_reset_index_clears_jobs_and_backs_up(index_env):
+    write_index(index_env, [job_entry("a"), job_entry("b")])
+    result = job_index.reset_index()
+    assert result["cleared"] == 2
+    assert job_index.list_jobs() == []
+    # The pre-clear index is preserved as a backup with its jobs intact.
+    backup = index_env / "outputs" / "_index.json.bak"
+    assert backup.is_file()
+    assert len(json.loads(backup.read_text(encoding="utf-8"))["jobs"]) == 2
+
+
+def test_reset_index_no_existing_file_is_safe(index_env):
+    result = job_index.reset_index()
+    assert result["cleared"] == 0
+    assert result["backup"] is None
+    assert job_index.list_jobs() == []
+
+
+def test_clear_output_folders_removes_subdirs_keeps_files(index_env):
+    outputs = index_env / "outputs"
+    (outputs / "2026-06-01" / "job_a").mkdir(parents=True)
+    (outputs / "2026-06-01" / "job_a" / "cv_output.pdf").write_text("x", encoding="utf-8")
+    (outputs / "test_single_job").mkdir()
+    write_index(index_env, [job_entry("2026-06-01/job_a")])
+    (outputs / "_activity.json").write_text("{}", encoding="utf-8")
+
+    result = job_index.clear_output_folders()
+
+    assert result["removed"] == 2  # the date dir and test_single_job
+    assert not (outputs / "2026-06-01").exists()
+    assert not (outputs / "test_single_job").exists()
+    # Top-level files are kept.
+    assert (outputs / "_index.json").is_file()
+    assert (outputs / "_activity.json").is_file()
+
+
+def test_clear_output_folders_no_outputs_dir_is_safe(tmp_path, monkeypatch):
+    monkeypatch.setattr(job_index, "_repo_root", lambda: tmp_path)  # no outputs/ dir
+    assert job_index.clear_output_folders() == {"removed": 0}
+
+
+def test_sync_from_sheet_update_status_false_maps_row_keeps_status(index_env, monkeypatch):
+    from ui.services import sheets
+
+    write_index(index_env, [job_entry("a", listing_url="http://x/1", status="approved")])
+    monkeypatch.setattr(
+        sheets, "get_jobs",
+        lambda status_filter=None: [{"row": 5, "listing_url": "http://x/1", "status": "to_review"}],
+    )
+
+    job_index.sync_from_sheet(update_status=False)
+
+    job = job_index.get_job("a")
+    assert job["sheet_row"] == 5         # sheet_row is mapped (UI needs it)
+    assert job["status"] == "approved"   # status is NOT pulled from the Sheet
+
+
+def test_sync_from_sheet_default_still_updates_status(index_env, monkeypatch):
+    from ui.services import sheets
+
+    write_index(index_env, [job_entry("a", listing_url="http://x/1", status="approved")])
+    monkeypatch.setattr(
+        sheets, "get_jobs",
+        lambda status_filter=None: [{"row": 5, "listing_url": "http://x/1", "status": "to_review"}],
+    )
+
+    job_index.sync_from_sheet()  # default update_status=True (migration behaviour)
+
+    assert job_index.get_job("a")["status"] == "to_review"
+
+
 def test_list_jobs_returns_all_jobs(index_env):
     write_index(
         index_env,

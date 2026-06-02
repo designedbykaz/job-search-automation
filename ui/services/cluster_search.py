@@ -19,21 +19,19 @@ except ImportError:
 
 
 def _log_jobs_counted(jobs: list[dict]) -> tuple[int, int]:
-    """Append jobs to the Sheet; return (logged_count, error_count)."""
+    """Append jobs to the Sheet as a downstream log; return (logged, errors).
+
+    No dedup here. The index is the source of truth and already deduped these
+    jobs before their folders were created, so the Sheet is just a secondary
+    mirror of what was added; a Sheet failure never affects the index.
+    """
     sheet = get_sheet()
     ensure_headers(sheet)
-    existing_urls = set(sheet.col_values(10))
     logged = 0
     errors = 0
     for job in jobs:
         try:
             job_url = job.get("url", "")
-            if job_url and job_url in existing_urls:
-                print(
-                    f"[cluster_search] Skipping duplicate: {job.get('title')} "
-                    "already in Sheet"
-                )
-                continue
             sheet.append_row([
                 str(date.today()),
                 job.get("title", ""),
@@ -50,7 +48,6 @@ def _log_jobs_counted(jobs: list[dict]) -> tuple[int, int]:
                 "",
                 "",
             ])
-            existing_urls.add(job_url)
             logged += 1
             print(
                 f"[cluster_search] Logged: {job.get('title')} at {job.get('employer')}"
@@ -76,6 +73,23 @@ def _log_jobs_counted(jobs: list[dict]) -> tuple[int, int]:
                     f"'{job.get('employer', '')}': {exc}"
                 )
     return logged, errors
+
+
+def _filter_unseen(jobs: list[dict], known_urls: set[str]) -> list[dict]:
+    """Drop jobs whose listing URL is already in the index (cross-run dedup).
+
+    The local index is the source of truth for what has been seen, so an empty
+    index (e.g. just after a clear) means nothing is filtered and every listing
+    is taken as new. Jobs with no URL cannot be matched and are kept.
+    """
+    unseen: list[dict] = []
+    for job in jobs:
+        url = job.get("url", "")
+        if url and url in known_urls:
+            print(f"[cluster_search] Skipping (already in index): {job.get('title')}")
+            continue
+        unseen.append(job)
+    return unseen
 
 
 def _resolve_clusters(cluster_ids: list[str] | None) -> list[dict]:
@@ -171,15 +185,31 @@ def run_cluster_search(
         matched = len(matched_jobs)
         print(f"[cluster_search] After filter: {matched} matched jobs.")
 
-        print("[cluster_search] Creating output folders...")
-        matched_jobs = create_output_folders(matched_jobs)
+        # Cross-run dedup against the local index (the source of truth), by
+        # listing URL. An empty index means nothing is skipped, so a clear
+        # resets dedup automatically.
+        known_urls = {
+            j.get("listing_url", "")
+            for j in job_index.list_jobs()
+            if j.get("listing_url")
+        }
+        new_jobs = _filter_unseen(matched_jobs, known_urls)
+        already_indexed = matched - len(new_jobs)
+        print(
+            f"[cluster_search] {already_indexed} already in index, "
+            f"{len(new_jobs)} new."
+        )
 
-        print("[cluster_search] Logging to Sheet...")
+        print("[cluster_search] Creating output folders for new jobs...")
+        new_jobs = create_output_folders(new_jobs)
+
+        # The Sheet is now a downstream log only; failures never touch the index.
+        print("[cluster_search] Logging new jobs to Sheet...")
         try:
-            logged_to_sheet, sheet_errors = _log_jobs_counted(matched_jobs)
+            logged_to_sheet, sheet_errors = _log_jobs_counted(new_jobs)
         except Exception as exc:
             logged_to_sheet = 0
-            sheet_errors = len(matched_jobs)
+            sheet_errors = len(new_jobs)
             print(f"[cluster_search] Sheet logging failed entirely: {exc}")
 
         if sheet_errors:
@@ -188,13 +218,19 @@ def run_cluster_search(
                 "(jobs still on disk and in index)."
             )
 
-        print("[cluster_search] Rebuilding index...")
+        # Disk -> index (local source of truth). Then map sheet_row onto the new
+        # entries from the Sheet WITHOUT pulling status: the UI actions are keyed
+        # on the sheet row, but the index, not the Sheet, owns status.
+        print("[cluster_search] Rebuilding index from disk...")
         job_index.rebuild_from_disk()
-        job_index.sync_from_sheet()
+        try:
+            job_index.sync_from_sheet(update_status=False)
+        except Exception as exc:
+            print(f"[cluster_search] sheet_row sync skipped: {exc}")
         indexed = len(job_index.list_jobs())
 
         print(
-            f"[cluster_search] Done. {matched} jobs scraped, "
+            f"[cluster_search] Done. {len(new_jobs)} new of {matched} matched, "
             f"{sheet_errors} failed Sheet write."
         )
 
@@ -202,12 +238,14 @@ def run_cluster_search(
             "scraped": scraped,
             "deduplicated": deduplicated,
             "matched": matched,
+            "already_indexed": already_indexed,
+            "new_jobs": len(new_jobs),
             "logged_to_sheet": logged_to_sheet,
             "sheet_errors": sheet_errors,
             "indexed": indexed,
             "clusters_used": clusters_used,
         }
-        pipeline_state.set_idle(f"{matched} jobs matched")
+        pipeline_state.set_idle(f"{len(new_jobs)} new jobs")
         return summary
     except Exception as exc:
         pipeline_state.set_error(str(exc))

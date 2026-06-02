@@ -36,6 +36,21 @@ def _open_sheet():
     return spreadsheet.sheet1
 
 
+def clear_data_rows() -> dict:
+    """Delete every data row from the Sheet, keeping the header row intact.
+
+    Returns ``{"cleared": <rows removed>}``. Raises on an API failure so the
+    caller can report it. Used by the index clear command's ``--with-sheet``
+    flag to reset the Sheet alongside the local index.
+    """
+    sheet = _open_sheet()
+    values = sheet.get_all_values()
+    data_rows = max(len(values) - 1, 0)  # exclude the header row
+    if data_rows > 0:
+        sheet.delete_rows(2, len(values))
+    return {"cleared": data_rows}
+
+
 def _normalize_status(cell: str) -> str:
     raw = (cell or "").strip().lower()
     if raw == "to review":

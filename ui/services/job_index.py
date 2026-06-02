@@ -310,6 +310,57 @@ def add_job(job: dict) -> None:
     _atomic_write_json(_index_path(), data)
 
 
+def reset_index() -> dict:
+    """Clear the index to an empty state, backing up the current file first.
+
+    Returns ``{"cleared": <jobs removed>, "backup": <path str or None>}``. The
+    current index is copied to ``outputs/_index.json.bak`` before it is wiped.
+    This touches only the index file; output folders and the Sheet are handled
+    separately (see clear_output_folders and sheets.clear_data_rows, both
+    orchestrated by ui.services.reset.clear_all). Scrape dedup is index-based, so
+    emptying the index also resets dedup: the next scrape treats all listings as
+    new.
+    """
+    path = _index_path()
+    cleared = 0
+    backup: Path | None = None
+    if path.is_file():
+        jobs = _read_index().get("jobs") or []
+        cleared = len(jobs)
+        backup = path.with_suffix(".json.bak")
+        shutil.copy2(path, backup)
+    _atomic_write_json(path, json.loads(json.dumps(_DEFAULT_INDEX)))
+    return {"cleared": cleared, "backup": str(backup) if backup else None}
+
+
+def clear_output_folders() -> dict:
+    """Delete every job output subfolder under outputs/, keeping the top-level
+    files (the index, its backup, the activity log, pipeline state).
+
+    Returns ``{"removed": <subfolders removed>}``. Only paths strictly inside
+    outputs/ are touched. Destructive: this removes tailored CVs and PDFs, so it
+    is meant for a deliberate clear-all reset.
+    """
+    outputs_root = _repo_root() / "outputs"
+    if not outputs_root.is_dir():
+        return {"removed": 0}
+    root_resolved = outputs_root.resolve()
+    removed = 0
+    for child in outputs_root.iterdir():
+        if not child.is_dir():
+            continue  # keep _index.json, _activity.json, _pipeline_state.json, etc.
+        try:
+            child.resolve().relative_to(root_resolved)
+        except ValueError:
+            continue  # safety: never delete anything outside outputs/
+        try:
+            shutil.rmtree(child)
+            removed += 1
+        except OSError as exc:
+            print(f"Warning: could not delete {child}: {exc}", file=sys.stderr)
+    return {"removed": removed}
+
+
 def rebuild_from_disk() -> dict:
     """Walk the outputs/ folder, read every job.json, rebuild the
     'jobs' array from scratch. Preserves status and sheet_row from
@@ -399,11 +450,16 @@ def rebuild_from_disk() -> dict:
     }
 
 
-def sync_from_sheet() -> dict:
+def sync_from_sheet(update_status: bool = True) -> dict:
     """Read all jobs from the Google Sheet via sheets.get_jobs(),
-    match them to the index by listing_url, and update status and
-    sheet_row on the matched index entries. Does not add or remove
-    jobs from the index.
+    match them to the index by listing_url, and update sheet_row (and,
+    when update_status is True, status) on the matched index entries.
+    Does not add or remove jobs from the index.
+
+    The scrape passes update_status=False: it needs the Sheet only to map
+    sheet_row onto the new index entries (the UI actions are keyed on the
+    sheet row), and the index, not the Sheet, owns status. The migration
+    script keeps the default so a first build can seed status from the Sheet.
 
     Returns a summary dict: {
         "matched": int,
@@ -446,7 +502,7 @@ def sync_from_sheet() -> dict:
         if entry.get("sheet_row") != new_row:
             entry["sheet_row"] = new_row
             changed = True
-        if entry.get("status") != new_status:
+        if update_status and entry.get("status") != new_status:
             entry["status"] = new_status
             changed = True
         if changed:

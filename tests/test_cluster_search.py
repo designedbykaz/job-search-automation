@@ -23,6 +23,7 @@ def cluster_search_env(monkeypatch):
         "scrape_keywords": [],
         "rebuild_calls": 0,
         "sync_calls": 0,
+        "sync_update_status": None,
         "log_calls": 0,
         "log_result": (0, 0),
         "list_jobs_result": [{"slug": "a"}],
@@ -51,8 +52,9 @@ def cluster_search_env(monkeypatch):
         state["rebuild_calls"] += 1
         return {"total_jobs_found": 1, "new_jobs": 1, "missing_from_disk": []}
 
-    def fake_sync():
+    def fake_sync(update_status=True):
         state["sync_calls"] += 1
+        state["sync_update_status"] = update_status
         return {"matched": 0, "updated": 0, "unmatched_sheet_rows": []}
 
     def fake_list_jobs():
@@ -141,6 +143,8 @@ def test_run_cluster_search_returns_correct_summary(
         "scraped": 1,
         "deduplicated": 1,
         "matched": 1,
+        "already_indexed": 0,
+        "new_jobs": 1,
         "logged_to_sheet": 1,
         "sheet_errors": 0,
         "indexed": 2,
@@ -170,10 +174,9 @@ def test_run_cluster_search_continues_after_sheet_error(
     cluster_search.run_cluster_search(cluster_ids=["CLU_1"])
 
     assert cluster_search_env["rebuild_calls"] == 1
-    assert cluster_search_env["sync_calls"] == 1
 
 
-def test_run_cluster_search_calls_index_rebuild_and_sync(
+def test_run_cluster_search_maps_sheet_row_without_status_sync(
     clusters_env, cluster_search_env
 ):
     clusters.create_cluster("A", ["kw"], active=True)
@@ -181,5 +184,32 @@ def test_run_cluster_search_calls_index_rebuild_and_sync(
     cluster_search.run_cluster_search(cluster_ids=["CLU_1"])
 
     assert cluster_search_env["rebuild_calls"] == 1
-    assert cluster_search_env["sync_calls"] == 1
     assert cluster_search_env["log_calls"] == 1
+    # The Sheet is read to map sheet_row onto new entries, but status is UI-owned,
+    # so the scrape must call sync with update_status=False.
+    assert cluster_search_env["sync_calls"] == 1
+    assert cluster_search_env["sync_update_status"] is False
+
+
+def test_run_cluster_search_skips_jobs_already_in_index(
+    clusters_env, cluster_search_env, monkeypatch
+):
+    # A scraped job whose URL is already in the index is dropped before folders.
+    clusters.create_cluster("A", ["match me"], active=True)
+
+    def fake_scrape(keywords):
+        return [
+            {"title": "match me one", "employer": "A", "url": "http://x/seen", "source": "govuk"},
+            {"title": "match me two", "employer": "B", "url": "http://x/new", "source": "govuk"},
+        ]
+
+    monkeypatch.setattr(cluster_search, "scrape_govuk_jobs", fake_scrape)
+    cluster_search_env["list_jobs_result"] = [
+        {"slug": "old", "listing_url": "http://x/seen"}
+    ]
+
+    result = cluster_search.run_cluster_search(cluster_ids=["CLU_1"])
+
+    assert result["matched"] == 2
+    assert result["already_indexed"] == 1
+    assert result["new_jobs"] == 1
