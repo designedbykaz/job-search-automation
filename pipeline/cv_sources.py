@@ -133,26 +133,83 @@ def _body_from_master_profile(
     return _clean_lines(pool.get(identity))
 
 
-def _body_from_vault(vault_dir, identity: str) -> list[str]:
-    """Read ``<vault_dir>/<identity>.md`` as body lines, if it exists.
+def _split_frontmatter(text: str) -> tuple[dict[str, str], list[str]]:
+    """Split a leading ``---`` fenced frontmatter block from the body.
 
-    Best-effort markdown: headings are dropped and bullet markers stripped.
-    The vault does not exist yet; absence simply yields an empty body.
+    Frontmatter is minimal ``key: value`` lines (no PyYAML, to keep the zero
+    dependency rule). Returns ``(meta, body_lines)``. A file with no opening
+    fence, or an unterminated one, is treated as all body with empty meta.
     """
-    if not vault_dir:
-        return []
-    path = Path(vault_dir) / f"{identity}.md"
-    if not path.is_file():
-        return []
-    lines: list[str] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, lines
+    meta: dict[str, str] = {}
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return meta, lines[i + 1:]
+        key, sep, value = lines[i].partition(":")
+        if sep:
+            meta[key.strip()] = value.strip()
+    # No closing fence: malformed, so keep nothing as meta and treat as body.
+    return {}, lines
+
+
+def _vault_body_lines(body_lines) -> list[str]:
+    """Best-effort markdown body: drop headings/fences, strip bullet markers."""
+    out: list[str] = []
+    for raw in body_lines:
         text = raw.strip()
-        if not text or text.startswith("#"):
+        if not text or text.startswith("#") or text == "---":
             continue
         if text.startswith(("- ", "* ")):
             text = text[2:].strip()
         if text:
-            lines.append(text)
+            out.append(text)
+    return out
+
+
+def index_vault(vault_dir) -> dict[str, list[Path]]:
+    """Scan ``vault_dir`` recursively for markdown nodes, mapping ``id -> paths``.
+
+    A node's id is its frontmatter ``id:`` if present, else its filename stem
+    (so a flat ``profile/<id>.md`` still resolves without frontmatter). Several
+    nodes may share one id; their bodies are concatenated downstream. Nodes whose
+    id matches no floor item are simply never looked up: harmless research
+    substrate. Unreadable files are skipped (fail-soft: a broken note must never
+    block tailoring).
+    """
+    index: dict[str, list[Path]] = {}
+    if not vault_dir:
+        return index
+    root = Path(vault_dir)
+    if not root.is_dir():
+        return index
+    for path in sorted(root.rglob("*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        meta, _ = _split_frontmatter(text)
+        identity = meta.get("id") or path.stem
+        if identity:
+            index.setdefault(identity, []).append(path)
+    return index
+
+
+def _body_from_vault(identity: str, vault_index: dict[str, list[Path]]) -> list[str]:
+    """Concatenate the body lines of every vault node sharing ``identity``.
+
+    Nodes are read in the sorted-path order ``index_vault`` recorded, so a
+    multi-node identity assembles deterministically.
+    """
+    lines: list[str] = []
+    for path in vault_index.get(identity, []):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        _, body = _split_frontmatter(text)
+        lines.extend(_vault_body_lines(body))
     return lines
 
 
@@ -192,6 +249,7 @@ def resolve_item(
     master_profile: dict,
     base: dict,
     vault_dir=None,
+    vault_index=None,
 ) -> dict:
     """Resolve one identity to its richest available body and tier.
 
@@ -199,6 +257,9 @@ def resolve_item(
     substantial; if none clear the bar, takes the first tier with any content;
     if all are empty, returns the ``none`` tier with an empty body. Factual
     fields always come from the floor item, regardless of which tier wins.
+
+    Pass a prebuilt ``vault_index`` (from ``index_vault``) to scan the vault
+    once across many items; otherwise it is built from ``vault_dir`` per call.
     """
     if section not in IDENTITY_SECTIONS:
         raise ValueError(
@@ -206,10 +267,13 @@ def resolve_item(
             f"expected one of {IDENTITY_SECTIONS}"
         )
 
+    if vault_index is None:
+        vault_index = index_vault(vault_dir)
+
     floor_item = _floor_index(base)[section].get(identity)
 
     candidates = (
-        (TIER_VAULT, _body_from_vault(vault_dir, identity)),
+        (TIER_VAULT, _body_from_vault(identity, vault_index)),
         (TIER_MASTER_PROFILE, _body_from_master_profile(master_profile, section, identity)),
         (TIER_BASE, _body_from_floor(floor_item, section)),
     )
@@ -238,14 +302,19 @@ def _title_for(section: str, facts: dict[str, str]) -> str:
 
 
 def build_content_index(
-    *, master_profile: dict, base: dict, vault_dir=None
+    *, master_profile: dict, base: dict, vault_dir=None, vault_index=None
 ) -> list[dict]:
     """Build the lightweight index the engine's selection step ranks against.
 
     One record per floor item (the floor defines what exists), in floor order:
     ``identity, section, title, first_line, tier, substantial``. The title and
     facts come from the floor; the first line and tier come from the resolver.
+
+    The vault is scanned once here (or reuses a prebuilt ``vault_index``) and
+    threaded into every ``resolve_item`` call.
     """
+    if vault_index is None:
+        vault_index = index_vault(vault_dir)
     records: list[dict] = []
     floor_index = _floor_index(base)
     for section in IDENTITY_SECTIONS:
@@ -255,7 +324,7 @@ def build_content_index(
                 section,
                 master_profile=master_profile,
                 base=base,
-                vault_dir=vault_dir,
+                vault_index=vault_index,
             )
             body = resolved["body"]
             records.append(

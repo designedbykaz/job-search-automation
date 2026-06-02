@@ -34,7 +34,7 @@ import os
 from typing import Callable, Optional
 
 from pipeline.cv_schema import normalize_cv_content, validate_cv_content
-from pipeline.cv_sources import build_content_index, resolve_item
+from pipeline.cv_sources import build_content_index, index_vault, resolve_item
 from pipeline.manifest import load_manifest, section_enabled, section_max
 from pipeline.tailor import load_prompt
 
@@ -200,7 +200,7 @@ def _resolve_selected(
     *,
     master_profile: dict,
     base: dict,
-    vault_dir,
+    vault_index,
     caps: dict,
 ) -> tuple[dict, dict]:
     """Resolve each selected identity to its facts and body.
@@ -220,7 +220,7 @@ def _resolve_selected(
             if not identity:
                 continue
             resolved = resolve_item(
-                identity, section, master_profile=master_profile, base=base, vault_dir=vault_dir
+                identity, section, master_profile=master_profile, base=base, vault_index=vault_index
             )
             # Floor-grounding guard: skip anything the floor cannot name.
             if resolved["tier"] == "none":
@@ -308,7 +308,10 @@ def run_engine(
     """
     manifest = load_manifest(template_id)
     caps = _slot_caps(manifest)
-    index = build_content_index(master_profile=master_profile, base=base, vault_dir=vault_dir)
+    vault_index = index_vault(vault_dir)
+    index = build_content_index(
+        master_profile=master_profile, base=base, vault_index=vault_index
+    )
     reservoir = collect_reservoir(master_profile)
 
     step1 = run_step1(job, manifest, caller, mapping)
@@ -318,7 +321,7 @@ def run_engine(
         step2.get("selection") or {},
         master_profile=master_profile,
         base=base,
-        vault_dir=vault_dir,
+        vault_index=vault_index,
         caps=caps,
     )
     selected_content = _selected_content(ordered, resolved_map)

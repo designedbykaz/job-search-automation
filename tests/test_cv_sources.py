@@ -213,6 +213,92 @@ def test_resolve_ignores_thin_vault(master_profile, base, tmp_path):
     assert r["tier"] == cv_sources.TIER_MASTER_PROFILE
 
 
+# --- nested vault: frontmatter id, recursive scan, many-to-one rollup ----
+
+
+def _write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_nested_node_resolves_by_frontmatter_id(master_profile, base, tmp_path):
+    # A nested, code-named file whose frontmatter id joins it to the floor item.
+    vault = tmp_path / cv_sources.VAULT_DIRNAME
+    _write(vault / "experiences" / "EXP_1.md", f"---\nid: siffa\n---\n- {LONG}\n")
+    r = cv_sources.resolve_item(
+        "siffa", "experience", master_profile=master_profile, base=base, vault_dir=vault
+    )
+    assert r["tier"] == cv_sources.TIER_VAULT
+    assert r["body"][0] == LONG  # frontmatter and bullet marker stripped
+
+
+def test_frontmatter_id_overrides_filename_stem(master_profile, base, tmp_path):
+    # The stem (EXP_1) matches no floor id; only the frontmatter id (siffa) does.
+    vault = tmp_path / cv_sources.VAULT_DIRNAME
+    _write(vault / "experiences" / "EXP_1.md", f"---\nid: siffa\n---\n- {LONG}\n")
+    idx = cv_sources.index_vault(vault)
+    assert "siffa" in idx and "EXP_1" not in idx
+
+
+def test_flat_file_without_frontmatter_uses_stem(master_profile, base, tmp_path):
+    # Back-compat: a flat profile/<id>.md with no frontmatter still resolves.
+    vault = tmp_path / cv_sources.VAULT_DIRNAME
+    _write(vault / "siffa.md", f"- {LONG}\n")
+    r = cv_sources.resolve_item(
+        "siffa", "experience", master_profile=master_profile, base=base, vault_dir=vault
+    )
+    assert r["tier"] == cv_sources.TIER_VAULT
+
+
+def test_multiple_nodes_sharing_id_concatenate(master_profile, base, tmp_path):
+    # Two knowledge nodes roll up into one CV item.
+    vault = tmp_path / cv_sources.VAULT_DIRNAME
+    _write(vault / "experiences" / "EXP_1.md", "---\nid: siffa\n---\n- From experiences.\n")
+    _write(vault / "context" / "CTX_9.md", "---\nid: siffa\n---\n- From context.\n")
+    body = cv_sources._body_from_vault("siffa", cv_sources.index_vault(vault))
+    # Sorted-path order: context/ precedes experiences/ alphabetically.
+    assert body == ["From context.", "From experiences."]
+
+
+def test_unmatched_node_is_inert(master_profile, base, tmp_path):
+    # A node whose id matches no floor item never surfaces; the floor stands.
+    vault = tmp_path / cv_sources.VAULT_DIRNAME
+    _write(vault / "context" / "CTX_1.md", f"---\nid: not_a_cv_item\n---\n- {LONG}\n")
+    r = cv_sources.resolve_item(
+        "halewood", "experience", master_profile=master_profile, base=base, vault_dir=vault
+    )
+    assert r["tier"] == cv_sources.TIER_BASE  # unchanged by the stray node
+
+
+def test_malformed_frontmatter_does_not_crash(master_profile, base, tmp_path):
+    # Unterminated fence: treated as all-body, never raises.
+    vault = tmp_path / cv_sources.VAULT_DIRNAME
+    _write(vault / "experiences" / "EXP_1.md", f"---\nid: siffa\n- {LONG}\n")
+    idx = cv_sources.index_vault(vault)
+    # No closing fence -> no meta -> falls back to stem (EXP_1), so no siffa join.
+    assert "siffa" not in idx
+    r = cv_sources.resolve_item(
+        "siffa", "experience", master_profile=master_profile, base=base, vault_dir=vault
+    )
+    assert r["tier"] == cv_sources.TIER_MASTER_PROFILE  # vault did not interfere
+
+
+def test_prebuilt_index_matches_per_item_scan(master_profile, base, tmp_path):
+    # build_content_index scans once; the result must equal a per-item scan.
+    vault = tmp_path / cv_sources.VAULT_DIRNAME
+    _write(vault / "experiences" / "EXP_1.md", f"---\nid: siffa\n---\n- {LONG}\n")
+    once = cv_sources.build_content_index(
+        master_profile=master_profile, base=base, vault_dir=vault
+    )
+    idx = cv_sources.index_vault(vault)
+    per_item = cv_sources.build_content_index(
+        master_profile=master_profile, base=base, vault_index=idx
+    )
+    assert once == per_item
+    siffa = next(r for r in once if r["identity"] == "siffa")
+    assert siffa["tier"] == cv_sources.TIER_VAULT
+
+
 # --- content index -------------------------------------------------------
 
 
