@@ -113,6 +113,13 @@ Render PDFs for approved jobs (batch renderer, uses the shared render service):
 python render_approved.py
 ```
 
+Re-tailor and re-render a single existing job from the terminal (a dev helper that fills the gap until the UI has a re-tailor button; it reads the live vault, cluster, and template choice and overwrites that job's `cv_tailored.json` and `cv_output.pdf` in place). The job is matched by a substring of its slug or output folder:
+
+```
+python retailor.py clinical_engineering                # re-tailor (live API calls) + render
+python retailor.py clinical_engineering --render-only  # re-render existing JSON, no API calls
+```
+
 Rebuild the disk index from output folders (one-off utility, useful after manual file deletion):
 
 ```
@@ -125,6 +132,7 @@ python -m scripts.build_job_index
 job-pipeline/
   main.py                  v1 CLI orchestrator
   render_approved.py       Batch PDF renderer (uses the shared render service)
+  retailor.py              Re-tailor/re-render one indexed job from the CLI (dev helper)
   scrapers/                Job board scrapers (govuk active; nhs, totaljobs stubbed)
   pipeline/                Tailoring engine and supporting services
     cv_engine.py           Three-call tailoring orchestrator
@@ -142,7 +150,7 @@ job-pipeline/
   content/
     base_cv_content.json   The floor: verified structured CV (gitignored; .example committed)
     master_profile.json    The reservoir: full history (gitignored; .example committed)
-  profile/                 Optional markdown vault, one file per item (gitignored)
+  profile/                 Markdown knowledge vault, nested by category; nodes join to CV items by frontmatter id (gitignored)
   prompts/                 Engine prompts cv_step1/2/3 (committed); v1 cv_prompt.txt (gitignored)
   templates/               One folder per template: full, lean, plain
     <id>/template.html     Jinja2 CV template
@@ -168,7 +176,7 @@ Approving a job runs `tailor_cv`, which no longer makes a single Claude call. It
 
 Every tailored field is drawn from a stack of sources, checked per item in priority order:
 
-1. **The vault** (`profile/<id>.md`, optional, not required yet): highest quality when authored, one file per item.
+1. **The vault** (`profile/**/*.md`, optional): the highest-quality source when authored. Markdown nodes nested by category; each CV-facing node carries a frontmatter `id:` that joins it to a floor item (falling back to the filename stem). Several nodes may share an id and are concatenated. `tailor_cv` reads the vault on every run.
 2. **`master_profile.json`**, the reservoir: your full history in your own words.
 3. **`base_cv_content.json`**, the floor: a complete, verified CV.
 

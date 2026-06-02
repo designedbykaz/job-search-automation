@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Callable, Optional
 
 from pipeline.cv_schema import normalize_cv_content, validate_cv_content
@@ -92,7 +93,11 @@ def _dump(obj) -> str:
 
 
 def _slot_caps(manifest: dict) -> dict:
-    """Enabled tailored sections mapped to their slot cap (``None`` = uncapped)."""
+    """Enabled tailored sections mapped to their slot cap (``None`` = uncapped).
+
+    Identity sections only. Used for the selection step and for capping the
+    resolved items the orchestrator assembles.
+    """
     caps: dict[str, Optional[int]] = {}
     for section in TAILORED_IDENTITY_SECTIONS:
         if section_enabled(manifest, section):
@@ -100,19 +105,47 @@ def _slot_caps(manifest: dict) -> dict:
     return caps
 
 
+# Non-identity output fields the synthesis step may also produce, gated by the
+# manifest. The Step 3 prompt only generates these when the slot map names them.
+_SYNTH_OUTPUT_FIELDS = ("skills_columns", "skill_tags")
+
+
+def _output_slots(manifest: dict) -> dict:
+    """Slot map for the synthesis step: identity caps plus the enabled
+    non-identity output fields (skills_columns, skill_tags).
+
+    Kept separate from ``_slot_caps`` so the selection path stays identity-only
+    while Step 3 is told which skills fields it is allowed to fill.
+    """
+    slots = dict(_slot_caps(manifest))
+    for field in _SYNTH_OUTPUT_FIELDS:
+        if section_enabled(manifest, field):
+            slots[field] = section_max(manifest, field, default=None)
+    return slots
+
+
 def _narrative_hint(mapping: Optional[dict]) -> str:
     return (mapping or {}).get("narrative_hint", "") or ""
 
 
 def _priors(mapping: Optional[dict]) -> dict:
-    """The cluster mapping's bias lists, for the selection step's prompt."""
+    """The cluster mapping's bias lists for the selection step's prompt.
+
+    Item-level only. skills_emphasis is not here: it steers skill themes, not
+    item selection, so it is threaded into the synthesis step instead.
+    """
     m = mapping or {}
     return {
         "experience_priority": m.get("experience_priority", []),
         "deprioritise": m.get("deprioritise", []),
         "project_emphasis": m.get("project_emphasis", []),
-        "skills_emphasis": m.get("skills_emphasis", []),
     }
+
+
+def _skills_emphasis(mapping: Optional[dict]) -> list:
+    """The cluster mapping's preferred technical_skills theme labels, for
+    synthesis. A nudge toward which themes to surface, not a lock."""
+    return (mapping or {}).get("skills_emphasis", []) or []
 
 
 def collect_reservoir(master_profile: dict) -> dict:
@@ -186,8 +219,9 @@ def run_step3(
         .replace("{{SELECTION}}", _dump(selection))
         .replace("{{SELECTED_CONTENT}}", _dump(selected_content))
         .replace("{{RESERVOIR}}", _dump(reservoir))
-        .replace("{{SLOT_CAPS}}", _dump(_slot_caps(manifest)))
+        .replace("{{SLOT_CAPS}}", _dump(_output_slots(manifest)))
         .replace("{{NARRATIVE_HINT}}", _narrative_hint(mapping))
+        .replace("{{SKILLS_EMPHASIS}}", _dump(_skills_emphasis(mapping)))
     )
     return _parse_json(caller(prompt, max_tokens=_STEP3_MAX_TOKENS), "synthesis")
 
@@ -248,12 +282,53 @@ def _selected_content(ordered: dict, resolved_map: dict) -> dict:
     return payload
 
 
+# Dated work-history sections are reordered into reverse-chronological order
+# after selection; relevance decides what is included, the timeline decides the
+# order shown. Projects carry no comparable dates, so they keep selection order.
+_CHRONO_SECTIONS = ("experience", "leadership")
+_MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+_ONGOING = ("present", "current", "ongoing", "now")
+
+
+def _year_month(token: str, fallback_year: Optional[int] = None) -> tuple[int, int]:
+    """Best-effort (year, month) from a date token like 'Oct 2025', '2018', or
+    'Present'. Ongoing markers sort newest; a missing year borrows the fallback."""
+    low = token.lower()
+    if any(word in low for word in _ONGOING):
+        return (9999, 13)
+    year_match = re.search(r"(?:19|20)\d{2}", token)
+    year = int(year_match.group()) if year_match else (fallback_year or 0)
+    month_match = re.search(r"[A-Za-z]{3,}", token)
+    month = _MONTHS.get(month_match.group()[:3].lower(), 0) if month_match else 0
+    return (year, month)
+
+
+def _chrono_key(dates: str) -> tuple:
+    """Reverse-chronological sort key for a CV date range: the range end first
+    (so current roles lead), then the start. Unparseable dates sort oldest, so a
+    bad value sinks rather than jumping the list. A shared year on one side of
+    'Mon - Mon YYYY' is borrowed by the side that lacks it."""
+    text = str(dates or "").strip()
+    if not text:
+        return ((0, 0), (0, 0))
+    parts = [p for p in re.split(r"\s*-\s*", text) if p.strip()] or [text]
+    end = _year_month(parts[-1])
+    start = _year_month(parts[0], fallback_year=end[0] or None)
+    if end[0] == 0:
+        end = _year_month(parts[-1], fallback_year=start[0] or None)
+    return (end, start)
+
+
 def _assemble_section(section: str, picks: list, resolved_map: dict, bullets: dict) -> list:
     """Combine floor facts with generated bullets into final items.
 
     Facts always come from the floor. Bullets prefer the model's output and fall
     back to the floor's verified bullets (not the raw reservoir body) so a
-    section is never empty and never unpolished.
+    section is never empty and never unpolished. Dated sections are returned in
+    reverse-chronological order regardless of the selection (relevance) order.
     """
     items = []
     for pick in picks:
@@ -265,6 +340,8 @@ def _assemble_section(section: str, picks: list, resolved_map: dict, bullets: di
         item.update(resolved["facts"])
         item["bullets"] = cleaned or list(resolved["floor_body"])
         items.append(item)
+    if section in _CHRONO_SECTIONS:
+        items.sort(key=lambda it: _chrono_key(it.get("dates", "")), reverse=True)
     return items
 
 

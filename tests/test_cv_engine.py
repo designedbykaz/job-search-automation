@@ -186,6 +186,45 @@ def test_engine_drops_unknown_selected_identity(base, master_profile):
     assert "ghost_job" not in json.dumps(report["selection"])
 
 
+def test_chrono_key_orders_present_first():
+    ranges = ["Jun - Jul 2017", "Oct 2025 - Present", "Apr 2021 - Mar 2022",
+              "Sep 2023 - Dec 2025", "Aug - Sep 2018"]
+    ordered = sorted(ranges, key=cv_engine._chrono_key, reverse=True)
+    assert ordered == [
+        "Oct 2025 - Present", "Sep 2023 - Dec 2025", "Apr 2021 - Mar 2022",
+        "Aug - Sep 2018", "Jun - Jul 2017",
+    ]
+
+
+def test_assemble_section_reorders_experience_reverse_chronologically():
+    # Selection order is by relevance (marketing first); output must be timeline.
+    resolved_map = {
+        ("experience", "gymfluence"): {
+            "facts": {"role": "", "company": "", "dates": "Apr 2021 - Mar 2022"},
+            "floor_body": ["a"]},
+        ("experience", "siffa"): {
+            "facts": {"role": "", "company": "", "dates": "Oct 2025 - Present"},
+            "floor_body": ["b"]},
+        ("experience", "halewood"): {
+            "facts": {"role": "", "company": "", "dates": "Jun - Jul 2017"},
+            "floor_body": ["c"]},
+    }
+    picks = [{"identity": "gymfluence"}, {"identity": "siffa"}, {"identity": "halewood"}]
+    items = cv_engine._assemble_section("experience", picks, resolved_map, {})
+    assert [it["id"] for it in items] == ["siffa", "gymfluence", "halewood"]
+
+
+def test_assemble_section_keeps_project_selection_order():
+    # Projects have no dates; they must keep the relevance (selection) order.
+    resolved_map = {
+        ("projects", "stratix"): {"facts": {"title": "Stratix", "stack": ""}, "floor_body": ["a"]},
+        ("projects", "pill_pod"): {"facts": {"title": "PillPod", "stack": ""}, "floor_body": ["b"]},
+    }
+    picks = [{"identity": "stratix"}, {"identity": "pill_pod"}]
+    items = cv_engine._assemble_section("projects", picks, resolved_map, {})
+    assert [it["id"] for it in items] == ["stratix", "pill_pod"]
+
+
 def test_engine_falls_back_to_floor_bullets_when_missing(base, master_profile):
     step3 = json.loads(json.dumps(STEP3))
     del step3["bullets"]["siffa"]  # model omitted bullets for siffa
@@ -235,6 +274,31 @@ def test_validation_passes_for_assembled_output(base, master_profile):
     assert validate_cv_content(cv) == []
 
 
+def test_output_slots_expose_skills_to_synthesis():
+    from pipeline.manifest import load_manifest
+
+    # full: skills_columns capped at 3, skill_tags disabled.
+    full = cv_engine._output_slots(load_manifest("full"))
+    assert full.get("skills_columns") == 3
+    assert "skill_tags" not in full
+    # lean: skills_columns disabled, skill_tags enabled (uncapped).
+    lean = cv_engine._output_slots(load_manifest("lean"))
+    assert "skills_columns" not in lean
+    assert "skill_tags" in lean
+    # The identity-only slot map must never carry skills fields.
+    assert "skills_columns" not in cv_engine._slot_caps(load_manifest("full"))
+
+
+def test_step3_prompt_receives_skills_slot(base, master_profile):
+    # The synthesis prompt must name skills_columns so the model may fill it.
+    caller = SequenceCaller([json.dumps(STEP1), json.dumps(STEP2), json.dumps(STEP3)])
+    cv_engine.run_engine(
+        {"title": "x", "employer": "", "description": ""},
+        base=base, master_profile=master_profile, template_id="full", caller=caller,
+    )
+    assert "skills_columns" in caller.prompts[2]  # step 3 prompt
+
+
 def test_collect_reservoir_pulls_pools(master_profile):
     pools = cv_engine.collect_reservoir(master_profile)
     assert pools["soft_skills"] == ["Adaptable across environments."]
@@ -260,6 +324,9 @@ def test_mapping_threads_into_prompts(base, master_profile):
     assert "LEAD WITH DESIGN CRAFT" in step3_prompt
     assert "experience_priority" in step2_prompt and "siffa" in step2_prompt
     assert "deprioritise" in step2_prompt and "ashtar" in step2_prompt
+    # skills_emphasis steers themes, so it reaches synthesis (step 3), not selection.
+    assert "ui_ux" in step3_prompt
+    assert "ui_ux" not in step2_prompt
 
 
 def test_no_mapping_leaves_no_unfilled_placeholders(base, master_profile):
@@ -267,3 +334,4 @@ def test_no_mapping_leaves_no_unfilled_placeholders(base, master_profile):
     joined = "".join(caller.prompts)
     assert "{{NARRATIVE_HINT}}" not in joined
     assert "{{PRIORS}}" not in joined
+    assert "{{SKILLS_EMPHASIS}}" not in joined

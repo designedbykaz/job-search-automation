@@ -38,16 +38,37 @@ tone, never facts:
 The tailored slot counts (section to maximum items; null means uncapped):
 {{SLOT_CAPS}}
 
+Preferred technical skill themes for this cluster (optional, may be empty). When
+present, surface these themes first in the technical column where the role
+supports them. A nudge, never an override of clear job fit:
+{{SKILLS_EMPHASIS}}
+
 Write:
 - objective: a short objective, three sentences maximum, naming why this
   candidate fits this role, grounded in the selected items and reservoir.
 - bullets: for EACH selected identity, a short list of bullet lines drawn from
   that item's body, reframed for the rubric. Key this map by identity.
-- skills_columns: titled skill groupings drawn from the reservoir and selected
-  content. Each has a heading and bullet lines. Provide these only if the slot
-  counts include skills_columns; otherwise return an empty list.
-- skill_tags: a compact flat list of tool or skill keywords, drawn from the
-  reservoir, only if the slot counts include skill_tags; otherwise empty.
+- skills_columns: produce these only if the slot counts include skills_columns;
+  otherwise return an empty list. When you produce them, output exactly two
+  columns (or fewer if the slot count is smaller), and no others:
+    1. "Software and Technical Skills": up to three bullet lines, each a themed
+       grouping drawn from the reservoir technical_skills, written as
+       "Theme label: tool, tool, tool". Choose the themes most relevant to this
+       role from the rubric and job description, favouring any preferred themes
+       listed above. You may lightly adapt a theme label to mirror the job's
+       language, but only where the adapted label still honestly describes the
+       tools listed under it. Never relabel a theme to claim relevance to a
+       requirement its tools do not genuinely support; if a theme does not fit
+       the role honestly, leave it out rather than stretch its label. Keep the
+       tool names from the source.
+    2. "Professional Skills": short, scannable phrases condensed from the
+       reservoir soft_skills (for example "Adaptability across domains",
+       "Stakeholder communication", "Precision under pressure"), not full
+       sentences.
+  Do not output a vague "Strengths" column or any catch-all third column.
+- skill_tags: a compact flat list of tool or skill keywords drawn from the
+  reservoir technical_skills, only if the slot counts include skill_tags;
+  otherwise return an empty list.
 
 Return ONLY this JSON, no preamble, no markdown:
 

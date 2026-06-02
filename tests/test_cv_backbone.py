@@ -66,7 +66,8 @@ def test_full_renders_all_structural_sections(sample_cv):
     assert "Projects" in html
     assert "Leadership Experience" in html
     assert "Work Experience" in html
-    assert "Professional Skills" in html
+    assert "Skills" in html  # the skills section header
+    assert "Structured Problem Solving" in html  # a skills_columns heading rendered
 
 
 def test_lean_omits_projects_and_leadership(sample_cv):
@@ -74,7 +75,7 @@ def test_lean_omits_projects_and_leadership(sample_cv):
     assert "Work Experience" in html
     assert "Projects" not in html
     assert "Leadership Experience" not in html
-    assert "Professional Skills" not in html
+    assert "Structured Problem Solving" not in html  # skills_columns omitted on lean
 
 
 def test_empty_arrays_produce_no_headings():

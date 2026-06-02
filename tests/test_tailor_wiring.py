@@ -47,7 +47,7 @@ def test_explicit_choice_overrides_cluster_default(monkeypatch, tmp_path):
     )
     seen = {}
 
-    def fake_engine(job, *, base, master_profile, template_id, mapping):
+    def fake_engine(job, *, base, master_profile, template_id, mapping, vault_dir):
         seen["template_id"] = template_id
         return FAKE_CV, FAKE_REPORT
 
@@ -64,22 +64,24 @@ def test_template_from_cluster_default_when_no_choice(monkeypatch, tmp_path):
     )
     seen = {}
 
-    def fake_engine(job, *, base, master_profile, template_id, mapping):
+    def fake_engine(job, *, base, master_profile, template_id, mapping, vault_dir):
         seen["template_id"] = template_id
         seen["mapping"] = mapping
+        seen["vault_dir"] = vault_dir
         return FAKE_CV, FAKE_REPORT
 
     monkeypatch.setattr(cv_engine, "run_engine", fake_engine)
     tailor.tailor_cv(JOB, tmp_path)
     assert seen["template_id"] == "full"  # cluster default applies
     assert seen["mapping"]["default_template"] == "full"  # mapping reaches the engine
+    assert seen["vault_dir"] == "profile"  # vault is threaded into the engine
 
 
 def test_defaults_to_plain_without_choice_or_cluster(monkeypatch, tmp_path):
     # autouse stubs: cluster resolves to None, mapping is base defaults (plain).
     seen = {}
 
-    def fake_engine(job, *, base, master_profile, template_id, mapping):
+    def fake_engine(job, *, base, master_profile, template_id, mapping, vault_dir):
         seen["template_id"] = template_id
         return FAKE_CV, FAKE_REPORT
 

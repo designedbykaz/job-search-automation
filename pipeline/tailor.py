@@ -112,6 +112,7 @@ def tailor_cv(job, output_folder):
         from pipeline.cv_engine import run_engine, EngineParseError
         from pipeline.cv_render import resolve_template_id
         from pipeline import cluster_map
+        from pipeline.cv_sources import VAULT_DIRNAME
 
         cluster_id = _read_cluster_for_folder(output_folder)
         mapping = cluster_map.get_mapping(cluster_id)
@@ -130,6 +131,7 @@ def tailor_cv(job, output_folder):
                 master_profile=master_profile,
                 template_id=template_id,
                 mapping=mapping,
+                vault_dir=VAULT_DIRNAME,
             )
         except EngineParseError as exc:
             output_folder.mkdir(parents=True, exist_ok=True)
