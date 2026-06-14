@@ -8,14 +8,14 @@ A local web app for scraping UK job listings, reviewing them in a fast browser U
 
 Scrapes UK job boards (currently findajob.dwp.gov.uk), filters results by keyword or freeform search terms, and stores them on disk and in a Google Sheet. You review jobs in a local browser, approve the ones you want to apply to, and render a tailored CV PDF for each. Tailoring runs a three-call Claude engine that selects from layered content sources and writes grounded prose over a verified base CV.
 
-The Sheet is the canonical approval log, mobile-friendly and editable from anywhere. The local disk is the source of truth for what jobs exist and their content. UI reads happen from disk (fast); writes go to both disk and Sheet.
+The Google Sheets API connection allows for writing data to an external sheet. This was the main approval surface in the v1 pipeline, in v2 it exists as a secondary surface that is mobile-friendly and editable from anywhere, while the UI is under active development. Thus, data on the local disk is the primary source of truth for what jobs exist and their content. UI reads happen directly from disk; writes go to both disk and Sheet.
 
 ## Architecture at a glance
 
 - **Scrape**: pulls jobs via `scrapers/govuk.py`
 - **Disk**: each job lives in `outputs/{YYYY-MM-DD}/{slug}/job.json`, indexed in `outputs/_index.json`
 - **Sheet**: each job is also appended as a row for mobile access
-- **UI**: Flask + Bootstrap 5 + HTMX, reads from the disk index on every page load (never the Sheet)
+- **UI**: Flask + Bootstrap 5 + HTMX, reads from the disk index on every page load
 - **Activity log**: `outputs/_activity.json` tracks scrape and approval events for the dashboard feed
 - **CV tailoring**: a three-call engine (`pipeline/cv_engine.py`) drawing from layered content sources (vault, master profile, base floor) and biased by per-cluster mappings, producing structured JSON the user can edit, then rendered to PDF via WeasyPrint
 - **Templates**: three shapes (full, lean, plain), each a Jinja2 template plus a `manifest.json` declaring its sections and slot caps
